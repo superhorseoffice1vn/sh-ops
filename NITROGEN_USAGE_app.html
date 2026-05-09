@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nitrogen Usage — Super Horse</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --black:  #0a0a0a;
+  --dark:   #111111;
+  --panel:  #181818;
+  --border: #2a2a2a;
+  --mid:    #383838;
+  --teal:   #00c9a7;
+  --teal2:  #00f5cc;
+  --amber:  #f5a623;
+  --red:    #e74c3c;
+  --green:  #22c55e;
+  --green2: #4ade80;
+  --white:  #f0f0f0;
+  --grey:   #888;
+  --mono:   'Share Tech Mono', monospace;
+  --cond:   'Barlow Condensed', sans-serif;
+  --body:   'Barlow', sans-serif;
+  --r:      8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--black); color: var(--white); font-family: var(--body); min-height: 100vh; overscroll-behavior: none; }
+
+/* ── LOCK ── */
+.lock-screen { position: fixed; inset: 0; z-index: 900; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
+.lock-screen.hidden { display: none; }
+.lock-logo  { font-family: var(--cond); font-weight: 900; font-size: 32px; letter-spacing: 4px; color: var(--green); margin-bottom: 4px; text-align: center; }
+.lock-sub   { font-family: var(--mono); font-size: 10px; color: var(--grey); letter-spacing: 3px; margin-bottom: 40px; text-align: center; }
+.lock-icon  { font-size: 48px; margin-bottom: 20px; }
+.lock-title { font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--white); margin-bottom: 6px; text-align: center; }
+.lock-hint  { font-size: 12px; color: var(--grey); margin-bottom: 28px; text-align: center; font-weight: 300; }
+.lock-box   { width: 100%; max-width: 320px; background: var(--panel); border: 1px solid var(--mid); border-radius: var(--r); overflow: hidden; }
+.lock-input { width: 100%; background: transparent; border: none; padding: 16px 20px; color: var(--white); font-family: var(--mono); font-size: 20px; letter-spacing: 4px; outline: none; text-align: center; }
+.lock-input::placeholder { color: var(--border); letter-spacing: 2px; font-size: 14px; }
+.lock-divider { height: 1px; background: var(--mid); }
+.lock-submit  { width: 100%; padding: 16px; background: var(--green); border: none; color: #000; font-family: var(--cond); font-size: 20px; font-weight: 900; letter-spacing: 3px; cursor: pointer; transition: filter .15s; }
+.lock-submit:hover { filter: brightness(1.1); }
+.lock-error { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--red); letter-spacing: 1px; text-align: center; min-height: 16px; }
+
+/* ── SETTINGS PWD ── */
+.pwd-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; padding: 24px; }
+.pwd-overlay.open { display: flex; }
+.pwd-box    { background: var(--dark); border: 1px solid var(--mid); border-radius: var(--r); padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; }
+.pwd-title  { font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--amber); margin-bottom: 6px; }
+.pwd-hint   { font-size: 12px; color: var(--grey); margin-bottom: 20px; font-weight: 300; }
+.pwd-input  { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 13px; color: var(--white); font-family: var(--mono); font-size: 18px; letter-spacing: 4px; outline: none; text-align: center; margin-bottom: 12px; }
+.pwd-input:focus { border-color: var(--amber); }
+.pwd-row    { display: flex; gap: 10px; }
+.pwd-btn    { flex: 1; padding: 13px; border-radius: 6px; font-family: var(--cond); font-size: 16px; font-weight: 700; letter-spacing: 1px; cursor: pointer; border: none; transition: all .15s; }
+.pwd-btn.cancel  { background: transparent; border: 1px solid var(--mid); color: var(--grey); }
+.pwd-btn.cancel:hover { border-color: var(--white); color: var(--white); }
+.pwd-btn.confirm { background: var(--amber); color: #000; }
+.pwd-error  { font-family: var(--mono); font-size: 11px; color: var(--red); margin-top: 10px; min-height: 16px; }
+
+/* ── HEADER ── */
+.hdr { position: sticky; top: 0; z-index: 50; background: var(--dark); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.hdr-brand { font-family: var(--cond); font-weight: 900; font-size: 20px; letter-spacing: 3px; color: var(--green); line-height: 1; }
+.hdr-brand small { display: block; font-size: 9px; font-weight: 400; color: var(--grey); letter-spacing: 4px; margin-top: 2px; }
+.hdr-right { display: flex; gap: 8px; }
+.hdr-btn   { font-family: var(--mono); font-size: 11px; background: transparent; border: 1px solid var(--mid); color: var(--grey); border-radius: 4px; padding: 6px 10px; cursor: pointer; transition: all .15s; }
+.hdr-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* ── MAIN ── */
+.main { padding: 20px 16px 48px; max-width: 560px; margin: 0 auto; }
+
+/* ── SECTION LABEL ── */
+.sec-label { font-family: var(--mono); font-size: 9px; letter-spacing: 3px; color: var(--grey); margin-bottom: 8px; display: block; }
+
+/* ── QR SCANNER ── */
+.qr-modal { position: fixed; inset: 0; z-index: 800; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+.qr-modal.open { display: flex; }
+.qr-video-wrap { position: relative; width: 100%; max-width: 420px; }
+.qr-video { width: 100%; display: block; }
+.qr-overlay-box { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.qr-finder { width: 220px; height: 220px; border: 3px solid var(--green); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,.55); animation: pulse-border 1.5s ease-in-out infinite; }
+@keyframes pulse-border { 0%,100%{border-color:var(--green)} 50%{border-color:var(--green2)} }
+.qr-hint-text { position: absolute; bottom: -36px; left: 0; right: 0; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--green2); letter-spacing: 2px; }
+.qr-close-btn { margin-top: 32px; padding: 14px 32px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--grey); font-family: var(--cond); font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+.qr-close-btn:hover { border-color: var(--white); color: var(--white); }
+.qr-scan-btn { background: transparent; border: 1px solid var(--green); border-radius: 6px; color: var(--green2); font-family: var(--mono); font-size: 11px; letter-spacing: 1px; padding: 7px 12px; cursor: pointer; flex-shrink: 0; transition: all .15s; white-space: nowrap; }
+.qr-scan-btn:hover { background: rgba(34,197,94,.1); }
+
+/* ── DATE / TIME ── */
+.datetime-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.dt-block { background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--r); padding: 12px 14px; transition: border-color .2s; }
+.dt-block:focus-within { border-color: var(--green); }
+.dt-label { font-family: var(--mono); font-size: 9px; letter-spacing: 3px; color: var(--grey); margin-bottom: 8px; display: block; }
+.dt-value { font-family: var(--mono); font-size: 18px; color: var(--white); font-weight: 600; letter-spacing: 1px; display: block; margin-bottom: 8px; }
+.dt-select { width: 100%; background: var(--dark); border: 1px solid var(--mid); border-radius: 5px; color: var(--white); font-family: var(--mono); font-size: 13px; padding: 8px 10px; outline: none; appearance: none; -webkit-appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+.dt-select:focus { border-color: var(--green); }
+.dt-today-badge { display: inline-block; font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: var(--teal); background: rgba(0,201,167,.1); border: 1px solid rgba(0,201,167,.3); border-radius: 3px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+.dt-now-badge   { display: inline-block; font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: var(--green); background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); border-radius: 3px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+
+/* ── LINE SELECTOR ── */
+.line-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.line-btn { position: relative; background: var(--panel); border: 2px solid var(--border); border-radius: var(--r); padding: 16px 8px; text-align: center; cursor: pointer; transition: all .2s; }
+.line-btn .l-label { font-family: var(--cond); font-size: 26px; font-weight: 900; letter-spacing: 2px; color: var(--white); display: block; }
+.line-btn .l-sub   { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 1px; display: block; margin-top: 3px; }
+.line-btn:hover { border-color: var(--green); }
+.line-btn.selected { border-color: var(--green); background: rgba(34,197,94,.08); }
+.line-btn.selected .l-label { color: var(--green2); }
+.line-btn .check { position: absolute; top: 6px; right: 8px; font-size: 13px; display: none; }
+.line-btn.selected .check { display: block; }
+
+/* ── CYLINDER ID ── */
+.cyl-block { background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px 16px; margin-bottom: 20px; transition: border-color .2s; }
+.cyl-block.active { border-color: var(--green); }
+.cyl-row   { display: flex; align-items: center; gap: 12px; }
+.cyl-icon  { font-size: 24px; flex-shrink: 0; }
+.cyl-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--green2); letter-spacing: 3px; -webkit-appearance: none; width: 100%; text-transform: uppercase; }
+.cyl-input::placeholder { color: var(--border); font-size: 16px; letter-spacing: 1px; }
+
+/* ── WEIGHT BLOCKS ── */
+.weight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+.weight-block { background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px; transition: border-color .2s; }
+.weight-block.active-b { border-color: var(--teal); }
+.weight-block.active-a { border-color: var(--amber); }
+.weight-lbl  { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--grey); margin-bottom: 8px; display: block; }
+.weight-inp  {
+  width: 100%; background: transparent; border: none; outline: none;
+  font-family: var(--mono); font-size: 36px;
+  text-align: right; padding: 2px 0;
+  -webkit-appearance: none; appearance: none;
+}
+.weight-inp::-webkit-inner-spin-button,
+.weight-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.weight-inp.before { color: var(--teal2); }
+.weight-inp.after  { color: var(--amber); }
+.weight-inp::placeholder { color: var(--border); font-size: 20px; }
+.weight-unit-sm { font-family: var(--mono); font-size: 12px; color: var(--grey); text-align: right; margin-top: 4px; }
+
+/* ── USED DISPLAY ── */
+.used-display {
+  background: var(--panel); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.used-label { font-family: var(--mono); font-size: 10px; color: var(--grey); letter-spacing: 2px; }
+.used-value { font-family: var(--cond); font-size: 36px; font-weight: 900; color: var(--green2); letter-spacing: 2px; }
+.used-value.empty { color: var(--border); font-size: 24px; }
+.used-unit  { font-family: var(--mono); font-size: 14px; color: var(--grey); }
+
+/* ── FIELDS ── */
+.field { margin-bottom: 16px; }
+.field-sel { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: var(--r); color: var(--white); font-family: var(--body); font-size: 15px; padding: 13px 14px; outline: none; transition: border-color .15s; appearance: none; -webkit-appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.field-sel:focus { border-color: var(--green); }
+.field-txt { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: var(--r); color: var(--white); font-family: var(--body); font-size: 14px; padding: 12px 14px; outline: none; resize: none; min-height: 60px; transition: border-color .15s; }
+.field-txt:focus { border-color: var(--green); }
+.field-txt::placeholder { color: var(--border); }
+
+/* ── SAVE ── */
+.save-btn { width: 100%; margin-top: 4px; padding: 18px; background: var(--green); border: none; border-radius: var(--r); color: #000; font-family: var(--cond); font-size: 22px; font-weight: 900; letter-spacing: 3px; cursor: pointer; transition: all .15s; }
+.save-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.save-btn:disabled { background: var(--mid); color: var(--grey); cursor: not-allowed; transform: none; }
+
+/* ── SUCCESS ── */
+.success { display: none; text-align: center; padding: 40px 0 20px; }
+.success-icon  { font-size: 56px; display: block; margin-bottom: 16px; animation: pop .45s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop { from{transform:scale(0) rotate(-15deg)} to{transform:scale(1) rotate(0)} }
+.success-title { font-family: var(--cond); font-size: 44px; font-weight: 900; letter-spacing: 4px; color: var(--green); margin-bottom: 6px; }
+.success-sub   { font-size: 12px; color: var(--grey); margin-bottom: 24px; font-weight: 300; }
+.summary { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 24px; text-align: left; }
+.sum-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.sum-row:last-child { border-bottom: none; }
+.sum-row .k { color: var(--grey); font-weight: 300; }
+.sum-row .v { font-family: var(--mono); font-size: 12px; }
+.again-btn { width: 100%; padding: 16px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--white); font-family: var(--cond); font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all .15s; }
+.again-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 12px 20px; font-family: var(--mono); font-size: 12px; z-index: 999; pointer-events: none; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; max-width: 92vw; text-align: center; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.ok   { border-color: var(--teal);  color: var(--teal); }
+.toast.bad  { border-color: var(--red);   color: var(--red); }
+.toast.warn { border-color: var(--amber); color: var(--amber); }
+
+/* ── SETTINGS ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+.overlay.open { display: flex; }
+.sheet { background: var(--dark); border: 1px solid var(--border); border-bottom: none; border-radius: 16px 16px 0 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; padding: 20px 16px 48px; animation: slideup .28s cubic-bezier(.34,1.2,.64,1); }
+@keyframes slideup { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sheet-handle { width: 36px; height: 3px; background: var(--mid); border-radius: 2px; margin: 0 auto 20px; }
+.sheet-title  { font-family: var(--cond); font-size: 24px; font-weight: 900; letter-spacing: 3px; color: var(--green); margin-bottom: 20px; }
+.sheet-sec    { margin-bottom: 20px; }
+.sheet-sec-title { font-family: var(--mono); font-size: 9px; letter-spacing: 3px; color: var(--grey); margin-bottom: 10px; }
+.list-row { display: flex; gap: 8px; margin-bottom: 7px; align-items: center; }
+.list-row input { flex: 1; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 10px 12px; color: var(--white); font-family: var(--mono); font-size: 13px; outline: none; }
+.list-row input:focus { border-color: var(--green); }
+.del-btn { background: transparent; border: 1px solid rgba(231,76,60,.3); border-radius: 5px; color: var(--red); font-size: 13px; padding: 8px 10px; cursor: pointer; }
+.add-btn { width: 100%; background: transparent; border: 1px dashed var(--mid); border-radius: 6px; color: var(--grey); font-family: var(--mono); font-size: 11px; padding: 9px; cursor: pointer; margin-top: 2px; }
+.add-btn:hover { border-color: var(--green); color: var(--green); }
+.url-inp  { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 11px 12px; color: var(--white); font-family: var(--mono); font-size: 11px; outline: none; }
+.url-inp:focus { border-color: var(--green); }
+.url-hint { font-size: 10px; color: var(--grey); margin-top: 6px; line-height: 1.5; }
+.sheet-div { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.sheet-btn-row { display: flex; gap: 10px; }
+.sheet-btn { flex: 1; padding: 14px; border-radius: var(--r); font-family: var(--cond); font-size: 17px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all .15s; border: none; }
+.sheet-btn.ghost   { background: transparent; border: 1px solid var(--mid); color: var(--grey); }
+.sheet-btn.ghost:hover { border-color: var(--white); color: var(--white); }
+.sheet-btn.primary { background: var(--green); color: #000; }
+.sheet-btn.primary:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+
+<!-- QR SCANNER MODAL -->
+<div class="qr-modal" id="qr-modal">
+  <div class="qr-video-wrap">
+    <video class="qr-video" id="qr-video" playsinline autoplay muted></video>
+    <div class="qr-overlay-box">
+      <div style="position:relative">
+        <div class="qr-finder"></div>
+        <div class="qr-hint-text">POINT AT CYLINDER QR CODE</div>
+      </div>
+    </div>
+  </div>
+  <button class="qr-close-btn" onclick="closeQR()">CANCEL</button>
+</div>
+
+<!-- LOCK -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-logo">SUPER HORSE</div>
+  <div class="lock-sub">NITROGEN USAGE</div>
+  <div class="lock-icon">🧪</div>
+  <div class="lock-title">ENTER PASSWORD</div>
+  <div class="lock-hint">Operator access</div>
+  <div class="lock-box">
+    <input class="lock-input" type="password" id="lock-input" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter') checkAppPwd()">
+    <div class="lock-divider"></div>
+    <button class="lock-submit" onclick="checkAppPwd()">UNLOCK</button>
+  </div>
+  <div class="lock-error" id="lock-error"></div>
+</div>
+
+<!-- SETTINGS PWD -->
+<div class="pwd-overlay" id="pwd-overlay">
+  <div class="pwd-box">
+    <div class="pwd-title">⚙ SETTINGS</div>
+    <div class="pwd-hint">Manager password required</div>
+    <input class="pwd-input" type="password" id="pwd-input" placeholder="••••••" autocomplete="off" onkeydown="if(event.key==='Enter') checkSettingsPwd()">
+    <div class="pwd-row">
+      <button class="pwd-btn cancel" onclick="closePwdPrompt()">CANCEL</button>
+      <button class="pwd-btn confirm" onclick="checkSettingsPwd()">ENTER</button>
+    </div>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay" id="cfg-overlay" onclick="cfgOutside(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">SETTINGS</div>
+    <div class="sheet-sec">
+      <div class="sheet-sec-title">GOOGLE APPS SCRIPT URL</div>
+      <input class="url-inp" type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/…/exec">
+      <div class="url-hint">Same URL as all other Super Horse apps.</div>
+    </div>
+    <hr class="sheet-div">
+    <div class="sheet-sec">
+      <div class="sheet-sec-title">STAFF NAMES</div>
+      <div id="cfg-staff"></div>
+      <button class="add-btn" onclick="addStaff()">+ Add staff</button>
+    </div>
+    <hr class="sheet-div">
+    <div class="sheet-btn-row">
+      <button class="sheet-btn ghost"   onclick="closeSettings()">CLOSE</button>
+      <button class="sheet-btn primary" onclick="saveSettings()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">SUPER HORSE<small>NITROGEN USAGE</small></div>
+  <div class="hdr-right">
+    <button class="hdr-btn" onclick="toggleLang()" id="lb">VI</button>
+    <button class="hdr-btn" onclick="openSettings()">⚙</button>
+  </div>
+</header>
+
+<main class="main">
+  <div id="form-screen">
+
+    <!-- DATE / TIME -->
+    <div class="datetime-row">
+      <div class="dt-block">
+        <span class="dt-label" id="lbl-date">DATE</span>
+        <span class="dt-value" id="dt-date-val">—</span>
+        <select class="dt-select" id="date-sel" onchange="onDateChange()"></select>
+      </div>
+      <div class="dt-block">
+        <span class="dt-label" id="lbl-time">TIME (HOUR)</span>
+        <span class="dt-value" id="dt-time-val">—</span>
+        <select class="dt-select" id="hour-sel" onchange="onHourChange()"></select>
+      </div>
+    </div>
+
+    <!-- LINE SELECT -->
+    <span class="sec-label" id="lbl-line">PRODUCTION LINE</span>
+    <div class="line-row">
+      <div class="line-btn" id="btn-la" onclick="selectLine('A')">
+        <span class="check">✅</span>
+        <span class="l-label">LINE A</span>
+        <span class="l-sub">DÂY A</span>
+      </div>
+      <div class="line-btn" id="btn-lb" onclick="selectLine('B')">
+        <span class="check">✅</span>
+        <span class="l-label">LINE B</span>
+        <span class="l-sub">DÂY B</span>
+      </div>
+      <div class="line-btn" id="btn-lc" onclick="selectLine('C')">
+        <span class="check">✅</span>
+        <span class="l-label">LINE C</span>
+        <span class="l-sub">DÂY C</span>
+      </div>
+    </div>
+
+    <!-- CYLINDER ID -->
+    <span class="sec-label" id="lbl-cyl-id">CYLINDER ID</span>
+    <div class="cyl-block" id="cyl-block">
+      <div class="cyl-row">
+        <span class="cyl-icon">🧪</span>
+        <input class="cyl-input" type="text" id="cyl-id"
+               placeholder="e.g. N2-001"
+               onfocus="document.getElementById('cyl-block').classList.add('active')"
+               onblur="document.getElementById('cyl-block').classList.remove('active')">
+        <button class="qr-scan-btn" onclick="openQR('cyl-id')">📷 SCAN</button>
+      </div>
+    </div>
+
+    <!-- BEFORE / AFTER WEIGHTS -->
+    <span class="sec-label" id="lbl-weights">WEIGHT (kg)</span>
+    <div class="weight-grid">
+      <div class="weight-block" id="wb-before">
+        <span class="weight-lbl" id="lbl-before">BEFORE USE</span>
+        <input class="weight-inp before" type="number" id="wt-before"
+               inputmode="decimal" step="0.1" min="0" placeholder="0.0"
+               oninput="calcUsed()"
+               onfocus="document.getElementById('wb-before').classList.add('active-b')"
+               onblur="document.getElementById('wb-before').classList.remove('active-b')">
+        <div class="weight-unit-sm">kg</div>
+      </div>
+      <div class="weight-block" id="wb-after">
+        <span class="weight-lbl" id="lbl-after">AFTER USE</span>
+        <input class="weight-inp after" type="number" id="wt-after"
+               inputmode="decimal" step="0.1" min="0" placeholder="0.0"
+               oninput="calcUsed()"
+               onfocus="document.getElementById('wb-after').classList.add('active-a')"
+               onblur="document.getElementById('wb-after').classList.remove('active-a')">
+        <div class="weight-unit-sm">kg</div>
+      </div>
+    </div>
+
+    <!-- USED (auto-calculated) -->
+    <div class="used-display" id="used-display">
+      <div>
+        <div class="used-label" id="lbl-used">N₂ USED TODAY</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;">
+        <div class="used-value empty" id="used-val">—</div>
+        <div class="used-unit" id="used-unit-lbl">kg</div>
+      </div>
+    </div>
+
+    <!-- STAFF + NOTES -->
+    <div class="field">
+      <span class="sec-label" id="lbl-staff">OPERATOR</span>
+      <select class="field-sel" id="staff-sel"></select>
+    </div>
+    <div class="field">
+      <span class="sec-label" id="lbl-notes">NOTES (OPTIONAL)</span>
+      <textarea class="field-txt" id="notes-in" rows="2" placeholder="e.g. cylinder nearly empty, replace tomorrow"></textarea>
+    </div>
+
+    <button class="save-btn" id="save-btn" onclick="saveLog()">SAVE USAGE LOG</button>
+
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success" id="success-screen">
+    <span class="success-icon">✅</span>
+    <div class="success-title">SAVED</div>
+    <div class="success-sub" id="suc-sub"></div>
+    <div class="summary"     id="suc-summary"></div>
+    <button class="again-btn" onclick="resetAll()">+ LOG ANOTHER</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+// ── PASSWORDS ──────────────────────────────────────
+const APP_PASSWORD      = 'shsh';
+const SETTINGS_PASSWORD = 'shsh1';
+
+// ── CONFIG ─────────────────────────────────────────
+let cfg = JSON.parse(localStorage.getItem('sh_n2_use_cfg') || 'null') || {
+  webhookUrl: 'https://script.google.com/macros/s/AKfycbwXuf40vHhwxo7ILqZ5vK1Gh_snnC8weZvTtOfTkybDWyntixaoNVtLsLtxdbXy6iPE/exec',
+  staff: ['Huy','Nien','Luat','Linh','Khanh','Other'],
+};
+
+// ── TRANSLATIONS ────────────────────────────────────
+const TR = {
+  en: {
+    'lb':'VI',
+    'lbl-date':'DATE', 'lbl-time':'TIME (HOUR)',
+    'lbl-line':'PRODUCTION LINE',
+    'lbl-cyl-id':'CYLINDER ID',
+    'lbl-weights':'WEIGHT (kg)',
+    'lbl-before':'BEFORE USE',
+    'lbl-after':'AFTER USE',
+    'lbl-used':'N₂ USED TODAY',
+    'lbl-staff':'OPERATOR',
+    'lbl-notes':'NOTES (OPTIONAL)',
+    'err-line':'Select a production line',
+    'err-cyl':'Enter cylinder ID',
+    'err-before':'Enter weight before use',
+    'err-after':'Enter weight after use',
+    'err-negative':'After weight cannot exceed before weight',
+    'toast-ok':'✓ Usage logged',
+    'toast-local':'Saved locally — no webhook set',
+    'toast-fail':'Save failed — check webhook URL',
+    'toast-cfg':'Settings saved',
+  },
+  vi: {
+    'lb':'EN',
+    'lbl-date':'NGÀY', 'lbl-time':'GIỜ',
+    'lbl-line':'DÂY SẢN XUẤT',
+    'lbl-cyl-id':'MÃ BÌNH',
+    'lbl-weights':'TRỌNG LƯỢNG (kg)',
+    'lbl-before':'TRƯỚC KHI DÙNG',
+    'lbl-after':'SAU KHI DÙNG',
+    'lbl-used':'N₂ ĐÃ DÙNG HÔM NAY',
+    'lbl-staff':'VẬN HÀNH VIÊN',
+    'lbl-notes':'GHI CHÚ (TUỲ CHỌN)',
+    'err-line':'Chọn dây sản xuất',
+    'err-cyl':'Nhập mã bình',
+    'err-before':'Nhập trọng lượng trước khi dùng',
+    'err-after':'Nhập trọng lượng sau khi dùng',
+    'err-negative':'Trọng lượng sau không thể lớn hơn trước',
+    'toast-ok':'✓ Đã lưu nhật ký sử dụng',
+    'toast-local':'Lưu cục bộ — chưa cài webhook',
+    'toast-fail':'Lưu thất bại — kiểm tra URL',
+    'toast-cfg':'Đã lưu cài đặt',
+  }
+};
+
+let lang = localStorage.getItem('sh_n2_use_lang') || 'en';
+function t(k){ return (TR[lang]||TR.en)[k] || TR.en[k] || k; }
+function applyLang(){
+  Object.keys(TR.en).forEach(k=>{
+    const el = document.getElementById(k);
+    if(!el) return;
+    if(['INPUT','TEXTAREA','SELECT'].includes(el.tagName)) return;
+    el.textContent = t(k);
+  });
+}
+function toggleLang(){ lang=lang==='en'?'vi':'en'; localStorage.setItem('sh_n2_use_lang',lang); applyLang(); }
+
+// ── PASSWORDS ───────────────────────────────────────
+function checkAppPwd(){
+  const val = document.getElementById('lock-input').value;
+  if(val===APP_PASSWORD){ document.getElementById('lock-screen').classList.add('hidden'); document.getElementById('lock-input').value=''; document.getElementById('lock-error').textContent=''; }
+  else { const e=document.getElementById('lock-error'); e.textContent='Incorrect password'; document.getElementById('lock-input').value=''; document.getElementById('lock-input').focus(); setTimeout(()=>e.textContent='',2500); }
+}
+function openSettings(){ document.getElementById('pwd-overlay').classList.add('open'); setTimeout(()=>document.getElementById('pwd-input')?.focus(),100); }
+function checkSettingsPwd(){
+  const val = document.getElementById('pwd-input').value;
+  if(val===SETTINGS_PASSWORD){ document.getElementById('pwd-overlay').classList.remove('open'); document.getElementById('pwd-input').value=''; document.getElementById('pwd-error').textContent=''; _openSettingsPanel(); }
+  else { const e=document.getElementById('pwd-error'); e.textContent='Incorrect password'; document.getElementById('pwd-input').value=''; document.getElementById('pwd-input').focus(); setTimeout(()=>e.textContent='',2500); }
+}
+function closePwdPrompt(){ document.getElementById('pwd-overlay').classList.remove('open'); document.getElementById('pwd-input').value=''; document.getElementById('pwd-error').textContent=''; }
+
+// ── STATE ───────────────────────────────────────────
+let selectedLine = null;
+
+// ── DATE / TIME ─────────────────────────────────────
+function initDateTime(){
+  const now = new Date();
+  const dateSel = document.getElementById('date-sel');
+  dateSel.innerHTML='';
+  for(let i=0;i<7;i++){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    const val=toYMD(d);
+    const opt=document.createElement('option');
+    opt.value=val; opt.text=i===0?`Today — ${fd(d)}`:fd(d);
+    if(i===0) opt.selected=true;
+    dateSel.appendChild(opt);
+  }
+  onDateChange();
+  buildHourOptions(now.getHours());
+  onHourChange();
+}
+
+function onDateChange(){
+  const val=document.getElementById('date-sel').value;
+  const now=new Date(); const isToday=val===toYMD(now);
+  const y=val.slice(0,4),m=val.slice(4,6),d=val.slice(6,8);
+  document.getElementById('dt-date-val').innerHTML=`${d}/${m}/${y}${isToday?' <span class="dt-today-badge">TODAY</span>':''}`;
+  buildHourOptions(isToday?now.getHours():23);
+  onHourChange();
+}
+
+function buildHourOptions(maxHour){
+  const sel=document.getElementById('hour-sel'); const cur=parseInt(sel.value)||-1;
+  sel.innerHTML='';
+  for(let h=maxHour;h>=0;h--){ const opt=document.createElement('option'); opt.value=h; opt.text=`${p(h)}:00`; if(h===maxHour) opt.selected=true; sel.appendChild(opt); }
+  if(cur>=0&&cur<=maxHour) sel.value=cur;
+}
+
+function onHourChange(){
+  const h=parseInt(document.getElementById('hour-sel').value);
+  const now=new Date(); const isNow=h===now.getHours()&&document.getElementById('date-sel').value===toYMD(now);
+  document.getElementById('dt-time-val').innerHTML=`${p(h)}:00${isNow?' <span class="dt-now-badge">NOW</span>':''}`;
+}
+
+function getSelectedDatetime(){
+  const dateVal=document.getElementById('date-sel').value;
+  const hour=parseInt(document.getElementById('hour-sel').value);
+  const y=dateVal.slice(0,4),m=dateVal.slice(4,6),d=dateVal.slice(6,8);
+  return { date:`${d}/${m}/${y}`, time:`${p(hour)}:00`, yyyymmdd:dateVal, yyyymm:`${y}${m}`, iso:new Date(`${y}-${m}-${d}T${p(hour)}:00:00`).toISOString() };
+}
+
+// ── LINE SELECT ─────────────────────────────────────
+function selectLine(l){
+  selectedLine=l;
+  ['A','B','C'].forEach(x=>document.getElementById(`btn-l${x.toLowerCase()}`).classList.toggle('selected',x===l));
+}
+
+// ── WEIGHT CALC ─────────────────────────────────────
+function calcUsed(){
+  const before = parseFloat(document.getElementById('wt-before').value);
+  const after  = parseFloat(document.getElementById('wt-after').value);
+  const valEl  = document.getElementById('used-val');
+  if(!isNaN(before) && !isNaN(after)){
+    const used = Math.round((before - after) * 10) / 10;
+    valEl.textContent = used >= 0 ? used.toFixed(1) : '⚠';
+    valEl.className   = used >= 0 ? 'used-value' : 'used-value empty';
+  } else {
+    valEl.textContent = '—';
+    valEl.className   = 'used-value empty';
+  }
+}
+
+// ── SAVE ────────────────────────────────────────────
+async function saveLog(){
+  if(!selectedLine){ showToast(t('err-line'),'bad'); return; }
+  const cylId  = document.getElementById('cyl-id').value.trim().toUpperCase();
+  if(!cylId){ showToast(t('err-cyl'),'bad'); return; }
+  const before = parseFloat(document.getElementById('wt-before').value);
+  const after  = parseFloat(document.getElementById('wt-after').value);
+  if(isNaN(before)||before<=0){ showToast(t('err-before'),'bad'); return; }
+  if(isNaN(after)||after<0)   { showToast(t('err-after'),'bad');  return; }
+  if(after > before)          { showToast(t('err-negative'),'bad'); return; }
+
+  const used   = Math.round((before - after) * 10) / 10;
+  const staff  = document.getElementById('staff-sel').value;
+  const notes  = document.getElementById('notes-in').value.trim();
+  const dt     = getSelectedDatetime();
+
+  const payload = {
+    form_type:      'NITROGEN_USAGE',
+    timestamp:      dt.iso,
+    date:           dt.date,
+    time:           dt.time,
+    yyyymmdd:       dt.yyyymmdd,
+    yyyymm:         dt.yyyymm,
+    cylinder_id:    cylId,
+    line_ab:        `Line ${selectedLine}`,
+    weight_before:  before,
+    weight_after:   after,
+    used_kg:        used,
+    staff_name:     staff,
+    notes:          notes,
+    app_version:    '1.0'
+  };
+
+  const btn = document.getElementById('save-btn');
+  btn.textContent='…'; btn.disabled=true;
+
+  const log = JSON.parse(localStorage.getItem('sh_n2_use_log')||'[]');
+  log.push(payload); localStorage.setItem('sh_n2_use_log',JSON.stringify(log));
+
+  if(cfg.webhookUrl){
+    try{
+      await fetch(cfg.webhookUrl,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+      showToast(t('toast-ok'),'ok');
+    } catch {
+      showToast(t('toast-fail'),'bad');
+      btn.textContent='SAVE USAGE LOG'; btn.disabled=false;
+      return;
+    }
+  } else {
+    showToast(t('toast-local'),'warn');
+  }
+
+  document.getElementById('suc-sub').textContent = `${cylId} · Line ${selectedLine} · ${used} kg used · ${dt.date}`;
+  document.getElementById('suc-summary').innerHTML = `
+    <div class="sum-row"><span class="k">Cylinder</span>  <span class="v">${cylId}</span></div>
+    <div class="sum-row"><span class="k">Line</span>      <span class="v">Line ${selectedLine}</span></div>
+    <div class="sum-row"><span class="k">Before</span>    <span class="v">${before} kg</span></div>
+    <div class="sum-row"><span class="k">After</span>     <span class="v">${after} kg</span></div>
+    <div class="sum-row"><span class="k">Used</span>      <span class="v">${used} kg</span></div>
+    <div class="sum-row"><span class="k">Date</span>      <span class="v">${dt.date}</span></div>
+    <div class="sum-row"><span class="k">Time</span>      <span class="v">${dt.time}</span></div>
+    <div class="sum-row"><span class="k">Operator</span> <span class="v">${staff}</span></div>
+    ${notes?`<div class="sum-row"><span class="k">Notes</span><span class="v">${notes}</span></div>`:''}
+  `;
+  document.getElementById('form-screen').style.display='none';
+  document.getElementById('success-screen').style.display='block';
+  window.scrollTo(0,0);
+}
+
+function resetAll(){
+  selectedLine=null;
+  ['A','B','C'].forEach(x=>document.getElementById(`btn-l${x.toLowerCase()}`).classList.remove('selected'));
+  document.getElementById('cyl-id').value='';
+  document.getElementById('wt-before').value='';
+  document.getElementById('wt-after').value='';
+  document.getElementById('used-val').textContent='—';
+  document.getElementById('used-val').className='used-value empty';
+  document.getElementById('notes-in').value='';
+  const btn=document.getElementById('save-btn');
+  btn.textContent='SAVE USAGE LOG'; btn.disabled=false;
+  document.getElementById('form-screen').style.display='block';
+  document.getElementById('success-screen').style.display='none';
+  initDateTime();
+  window.scrollTo(0,0);
+}
+
+// ── SETTINGS ────────────────────────────────────────
+function _openSettingsPanel(){ document.getElementById('cfg-url').value=cfg.webhookUrl; renderStaff(); document.getElementById('cfg-overlay').classList.add('open'); }
+function closeSettings(){ document.getElementById('cfg-overlay').classList.remove('open'); }
+function cfgOutside(e){ if(e.target===document.getElementById('cfg-overlay')) closeSettings(); }
+function renderStaff(){ document.getElementById('cfg-staff').innerHTML=cfg.staff.map((s,i)=>`<div class="list-row"><input id="cs${i}" value="${s}"><button class="del-btn" onclick="delStaff(${i})">✕</button></div>`).join(''); }
+function addStaff(){ cfg.staff.push('New Staff'); renderStaff(); setTimeout(()=>{const el=document.getElementById(`cs${cfg.staff.length-1}`);el?.focus();el?.select();},40); }
+function delStaff(i){ if(cfg.staff.length>1){cfg.staff.splice(i,1);renderStaff();} }
+function saveSettings(){ cfg.webhookUrl=document.getElementById('cfg-url').value.trim(); cfg.staff=[...document.querySelectorAll('[id^="cs"]')].map(e=>e.value.trim()).filter(Boolean); localStorage.setItem('sh_n2_use_cfg',JSON.stringify(cfg)); populateStaff(); showToast(t('toast-cfg'),'ok'); closeSettings(); }
+function populateStaff(){ document.getElementById('staff-sel').innerHTML=cfg.staff.map(s=>`<option>${s}</option>`).join(''); }
+
+// ── UTILS ────────────────────────────────────────────
+function fd(d){ return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`; }
+function toYMD(d){ return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`; }
+function p(n){ return String(n).padStart(2,'0'); }
+
+let _tt;
+function showToast(msg,type='ok'){ const el=document.getElementById('toast'); el.textContent=msg; el.className=`toast ${type} show`; clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000); }
+
+// ── QR SCANNER ───────────────────────────────────────
+let qrStream      = null;
+let qrAnimFrame   = null;
+let qrTargetField = null;
+
+function openQR(fieldId) {
+  qrTargetField = fieldId;
+  const modal = document.getElementById('qr-modal');
+  modal.classList.add('open');
+  const video = document.getElementById('qr-video');
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      qrStream = stream;
+      video.srcObject = stream;
+      video.play();
+      requestAnimationFrame(scanFrame);
+    })
+    .catch(() => {
+      showToast('Camera not available', 'bad');
+      closeQR();
+    });
+}
+
+function scanFrame() {
+  const video = document.getElementById('qr-video');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) { qrAnimFrame = requestAnimationFrame(scanFrame); return; }
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const img  = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) {
+    const val = code.data.trim().toUpperCase();
+    const el  = document.getElementById(qrTargetField);
+    if (el) { el.value = val; }
+    closeQR();
+    showToast('✓ Cylinder ID scanned: ' + val, 'ok');
+  } else {
+    qrAnimFrame = requestAnimationFrame(scanFrame);
+  }
+}
+
+function closeQR() {
+  cancelAnimationFrame(qrAnimFrame);
+  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+  document.getElementById('qr-modal').classList.remove('open');
+  document.getElementById('qr-video').srcObject = null;
+}
+
+// ── INIT ─────────────────────────────────────────────
+applyLang();
+populateStaff();
+initDateTime();
+document.getElementById('success-screen').style.display='none';
+document.getElementById('lock-screen').classList.remove('hidden');
+setTimeout(()=>document.getElementById('lock-input')?.focus(),100);
+</script>
+</body>
+</html>
