@@ -408,13 +408,13 @@ html, body { background: var(--black); color: var(--white); font-family: var(--b
       <div class="photo-empty">
         <span class="ico">📷</span>
         <div class="lbl" id="tap-lbl">TAP TO PHOTOGRAPH</div>
-        <div class="sub" id="tap-sub">Frame the number display · 10:3 crop</div>
+        <div class="sub" id="tap-sub">Optional · Frame the number display · 10:3 crop</div>
       </div>
       <button class="retake-btn" id="retake-btn" onclick="retake(event)">↺ retake</button>
     </div>
     <input type="file" id="file-in" accept="image/*" capture="environment" onchange="onFile(event)">
 
-    <div id="entry-wrap" style="display:none">
+    <div id="entry-wrap">
       <div class="digit-block">
         <span class="digit-block-label" id="entry-lbl">ENTER READING</span>
         <div class="digit-row" id="entry-row"></div>
@@ -467,6 +467,7 @@ function checkAppPwd() {
     document.getElementById('lock-screen').classList.add('hidden');
     document.getElementById('lock-input').value = '';
     document.getElementById('lock-error').textContent = '';
+    setTimeout(()=>document.getElementById('e0')?.focus(), 150);
   } else {
     const err = document.getElementById('lock-error');
     err.textContent = 'Incorrect password';
@@ -503,6 +504,7 @@ function closePwdPrompt() {
 let lang = localStorage.getItem('sh_lang') || 'en';
 let cfg  = JSON.parse(localStorage.getItem('sh_cfg4') || 'null') || {
   webhookUrl: 'https://script.google.com/macros/s/AKfycbwXuf40vHhwxo7ILqZ5vK1Gh_snnC8weZvTtOfTkybDWyntixaoNVtLsLtxdbXy6iPE/exec',
+//  meters: ['RO_OUTPUT','BOILER_2','LEVEL_2','RO_XUONG'],
   meters: ['RO_OUTPUT','BOILER_2','LEVEL_2','RO_XUONG','GRD1','GRD2','GRD3'],
   staff:  ['DungK','Son','Viet','Rom','Linh'],
   digits: 6
@@ -760,12 +762,7 @@ function applyCrop(){
   prev.src=''; prev.src=croppedUrl; prev.style.display='block';
   document.getElementById('pzone').classList.add('filled');
   document.getElementById('crop-modal').classList.remove('open');
-  buildRow('entry-row','e',onEntryChange);
-  buildRow('retype-row','r',onRetypeChange);
-  populateSels();
-  document.getElementById('retype-block').classList.remove('visible');
-  document.getElementById('save-btn').disabled=true;
-  document.getElementById('entry-wrap').style.display='block';
+  // entry-wrap is always visible — just focus first digit
   setTimeout(()=>document.getElementById('e0')?.focus(),100);
 }
 
@@ -791,7 +788,6 @@ function populateSels(){
 
 // ── SAVE ── PATCH 2: form_type added · PATCH 3: version 4.1 ──────────────
 async function saveLog(){
-  if(!croppedUrl){ showToast(t('err-photo'),'bad'); return; }
   const entry  = getVal('e');
   const retype = getVal('r');
   if(entry.length<cfg.digits){ showToast(t('err-digits'),'bad'); return; }
@@ -852,12 +848,19 @@ function resetAll(){
   croppedUrl=null;
   document.getElementById('prev').style.display='none';
   document.getElementById('pzone').classList.remove('filled');
-  document.getElementById('entry-wrap').style.display='none';
   document.getElementById('retype-block').classList.remove('visible');
   document.getElementById('notes-in').value='';
+  // Clear digit boxes
+  for(let i=0;i<cfg.digits;i++){
+    const e=document.getElementById(`e${i}`); if(e){e.value='';e.classList.remove('filled','error');}
+    const r=document.getElementById(`r${i}`); if(r){r.value='';r.className='retype-box';}
+  }
+  document.getElementById('save-btn').disabled=true;
+  document.getElementById('retype-status').textContent='';
   document.getElementById('form-screen').style.display='block';
   document.getElementById('success-screen').style.display='none';
   window.scrollTo(0,0);
+  setTimeout(()=>document.getElementById('e0')?.focus(),100);
 }
 
 function openSettings(){
@@ -909,6 +912,14 @@ function showToast(msg,type='ok'){
 applyLang();
 document.getElementById('success-screen').style.display='none';
 document.getElementById('lock-screen').classList.remove('hidden');
+
+// Build digit rows and populate selects immediately so form is ready on unlock
+buildRow('entry-row','e',onEntryChange);
+buildRow('retype-row','r',onRetypeChange);
+populateSels();
+document.getElementById('retype-block').classList.remove('visible');
+document.getElementById('save-btn').disabled=true;
+
 setTimeout(()=>document.getElementById('lock-input')?.focus(),100);
 
 if(qrMeter){
