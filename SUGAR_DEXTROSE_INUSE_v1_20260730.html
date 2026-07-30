@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sugar & Dextrose — Super Horse</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --black:   #0a0a0a;
+  --dark:    #111111;
+  --panel:   #181818;
+  --panel2:  #1e1e1e;
+  --border:  #2a2a2a;
+  --mid:     #383838;
+  --teal:    #00c9a7;
+  --teal2:   #00f5cc;
+  --amber:   #f5a623;
+  --red:     #e74c3c;
+  --green:   #22c55e;
+  --purple:  #a855f7;
+  --purple2: #c084fc;
+  --white:   #f0f0f0;
+  --grey:    #888;
+  --mono:    'Share Tech Mono', monospace;
+  --cond:    'Barlow Condensed', sans-serif;
+  --body:    'Barlow', sans-serif;
+  --r:       8px;
+  /* Section colours */
+  --sugar:   #f5a623;   /* amber for sugar */
+  --dex:     #a855f7;   /* purple for dextrose */
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--black); color: var(--white); font-family: var(--body); min-height: 100vh; overscroll-behavior: none; }
+
+/* ── LOCK ── */
+.lock-screen { position: fixed; inset: 0; z-index: 900; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
+.lock-screen.hidden { display: none; }
+.lock-logo  { font-family: var(--cond); font-weight: 900; font-size: 28px; letter-spacing: 4px; color: var(--teal); margin-bottom: 2px; text-align: center; }
+.lock-badge { font-family: var(--mono); font-size: 9px; color: var(--teal2); letter-spacing: 3px; margin-bottom: 36px; text-align: center; border: 1px solid rgba(0,201,167,.4); border-radius: 4px; padding: 3px 12px; display: inline-block; }
+.lock-icon  { font-size: 44px; margin-bottom: 16px; }
+.lock-title { font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--white); margin-bottom: 20px; text-align: center; }
+.lock-box   { width: 100%; max-width: 320px; background: var(--panel); border: 1px solid var(--mid); border-radius: var(--r); overflow: hidden; }
+.lock-input { width: 100%; background: transparent; border: none; padding: 16px 20px; color: var(--white); font-family: var(--mono); font-size: 20px; letter-spacing: 4px; outline: none; text-align: center; }
+.lock-input::placeholder { color: var(--border); letter-spacing: 2px; font-size: 14px; }
+.lock-divider { height: 1px; background: var(--mid); }
+.lock-submit  { width: 100%; padding: 16px; background: var(--teal); border: none; color: #000; font-family: var(--cond); font-size: 20px; font-weight: 900; letter-spacing: 3px; cursor: pointer; }
+.lock-error { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--red); letter-spacing: 1px; text-align: center; min-height: 16px; }
+
+/* ── SETTINGS PWD ── */
+.pwd-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; padding: 24px; }
+.pwd-overlay.open { display: flex; }
+.pwd-box    { background: var(--dark); border: 1px solid var(--mid); border-radius: var(--r); padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; }
+.pwd-title  { font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--amber); margin-bottom: 6px; }
+.pwd-hint   { font-size: 12px; color: var(--grey); margin-bottom: 20px; font-weight: 300; }
+.pwd-input  { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 13px; color: var(--white); font-family: var(--mono); font-size: 18px; letter-spacing: 4px; outline: none; text-align: center; margin-bottom: 12px; }
+.pwd-input:focus { border-color: var(--amber); }
+.pwd-row    { display: flex; gap: 10px; }
+.pwd-btn    { flex: 1; padding: 13px; border-radius: 6px; font-family: var(--cond); font-size: 16px; font-weight: 700; letter-spacing: 1px; cursor: pointer; border: none; }
+.pwd-btn.cancel  { background: transparent; border: 1px solid var(--mid); color: var(--grey); }
+.pwd-btn.confirm { background: var(--amber); color: #000; }
+.pwd-error  { font-family: var(--mono); font-size: 11px; color: var(--red); margin-top: 10px; min-height: 16px; }
+
+/* ── HEADER ── */
+.hdr { position: sticky; top: 0; z-index: 50; background: var(--dark); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.hdr-brand { font-family: var(--cond); font-weight: 900; font-size: 20px; letter-spacing: 3px; color: var(--teal); line-height: 1; }
+.hdr-brand small { display: block; font-size: 9px; font-weight: 400; color: var(--grey); letter-spacing: 4px; margin-top: 2px; }
+.hdr-right { display: flex; gap: 8px; align-items: center; }
+.mix-badge { background: rgba(0,201,167,.12); border: 1px solid var(--teal); border-radius: 4px; font-family: var(--mono); font-size: 9px; color: var(--teal2); letter-spacing: 2px; padding: 3px 8px; }
+.hdr-btn { font-family: var(--mono); font-size: 11px; background: transparent; border: 1px solid var(--mid); color: var(--grey); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+.hdr-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── MAIN ── */
+.main { padding: 20px 16px 48px; max-width: 560px; margin: 0 auto; }
+.sec-label { font-family: var(--mono); font-size: 9px; letter-spacing: 3px; color: var(--grey); margin-bottom: 8px; display: block; }
+
+/* ── TANK NUMBER ── */
+.tank-block { background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px 16px; margin-bottom: 24px; transition: border-color .2s; }
+.tank-block:focus-within { border-color: var(--teal); }
+.tank-row  { display: flex; align-items: center; gap: 12px; }
+.tank-icon { font-size: 24px; flex-shrink: 0; }
+.tank-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: var(--mono); font-size: 36px; font-weight: 700;
+  color: var(--teal2); letter-spacing: 4px;
+  -webkit-appearance: none; width: 100%;
+}
+.tank-input::placeholder { color: var(--border); font-size: 20px; letter-spacing: 2px; font-weight: 400; }
+.tank-unit { font-family: var(--mono); font-size: 12px; color: var(--grey); flex-shrink: 0; }
+
+/* ── SECTION HEADERS ── */
+.section-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 20px; }
+.section-hdr  { padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.section-icon  { font-size: 20px; }
+.section-title { font-family: var(--cond); font-size: 18px; font-weight: 900; letter-spacing: 2px; }
+.section-count { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 1px; margin-left: auto; }
+
+/* ── ROW ITEMS ── */
+.ingredient-row {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ingredient-row:last-child { border-bottom: none; }
+.row-num { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 2px; margin-bottom: 2px; }
+
+/* Supplier pills */
+.sup-pills { display: flex; flex-direction: column; gap: 6px; }
+.sup-pill {
+  background: var(--panel2); border: 1.5px solid var(--border);
+  border-radius: 6px; padding: 10px 14px; cursor: pointer;
+  transition: all .15s; display: flex; align-items: center; gap: 10px;
+}
+.sup-pill:hover { border-color: var(--mid); }
+.sup-pill.selected-sugar   { border-color: var(--sugar); background: rgba(245,166,35,.08); }
+.sup-pill.selected-dex     { border-color: var(--dex);   background: rgba(168,85,247,.08); }
+.sup-pill .pill-check { font-size: 14px; flex-shrink: 0; opacity: 0; }
+.sup-pill.selected-sugar .pill-check,
+.sup-pill.selected-dex   .pill-check { opacity: 1; }
+.sup-pill .pill-text { font-size: 11px; line-height: 1.4; color: var(--white); }
+.sup-pill.selected-sugar .pill-text { color: var(--sugar); }
+.sup-pill.selected-dex   .pill-text { color: var(--purple2); }
+
+/* Date input */
+.date-row { display: flex; align-items: center; gap: 10px; }
+.date-label { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 2px; flex-shrink: 0; }
+.date-inp {
+  flex: 1; background: var(--panel2); border: 1px solid var(--mid);
+  border-radius: 6px; padding: 10px 12px;
+  color: var(--white); font-family: var(--mono); font-size: 13px;
+  outline: none; appearance: none; -webkit-appearance: none;
+  color-scheme: dark;
+}
+.date-inp:focus { border-color: var(--teal); }
+
+/* ── SUBMIT ── */
+.submit-btn { width: 100%; margin-top: 4px; padding: 18px; background: var(--teal); border: none; border-radius: var(--r); color: #000; font-family: var(--cond); font-size: 22px; font-weight: 900; letter-spacing: 3px; cursor: pointer; transition: all .15s; }
+.submit-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.submit-btn:disabled { background: var(--mid); color: var(--grey); cursor: not-allowed; transform: none; }
+
+/* ── CONFIRM ── */
+.confirm-screen { display: none; }
+.confirm-card { background: var(--panel); border: 1.5px solid var(--teal); border-radius: var(--r); overflow: hidden; margin-bottom: 16px; }
+.confirm-card-hdr { background: rgba(0,201,167,.08); padding: 12px 16px; border-bottom: 1px solid var(--border); font-family: var(--cond); font-size: 15px; font-weight: 700; letter-spacing: 2px; }
+.confirm-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 12px; gap: 12px; }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row .k { color: var(--grey); font-weight: 300; flex-shrink: 0; min-width: 80px; }
+.confirm-row .v { font-family: var(--mono); font-size: 11px; text-align: right; line-height: 1.5; }
+.confirm-row .v.hi-sugar { color: var(--sugar); }
+.confirm-row .v.hi-dex   { color: var(--purple2); }
+.confirm-row .v.hi-teal  { color: var(--teal2); }
+
+.confirm-btns { display: flex; gap: 12px; margin-top: 16px; }
+.btn-back    { flex: 1; padding: 15px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--grey); font-family: var(--cond); font-size: 16px; font-weight: 700; letter-spacing: 1px; cursor: pointer; }
+.btn-back:hover { border-color: var(--white); color: var(--white); }
+.btn-confirm { flex: 2; padding: 16px; background: var(--teal); border: none; border-radius: var(--r); color: #000; font-family: var(--cond); font-size: 20px; font-weight: 900; letter-spacing: 3px; cursor: pointer; }
+.btn-confirm:disabled { background: var(--mid); color: var(--grey); cursor: not-allowed; }
+
+/* ── SUCCESS ── */
+.success-screen { display: none; text-align: center; padding: 40px 0 20px; }
+.success-icon  { font-size: 56px; display: block; margin-bottom: 16px; animation: pop .45s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop { from{transform:scale(0) rotate(-15deg)} to{transform:scale(1) rotate(0)} }
+.success-title { font-family: var(--cond); font-size: 40px; font-weight: 900; letter-spacing: 4px; color: var(--teal); margin-bottom: 6px; }
+.success-sub   { font-size: 12px; color: var(--grey); margin-bottom: 8px; }
+.success-count { font-family: var(--mono); font-size: 13px; color: var(--teal2); margin-bottom: 28px; letter-spacing: 1px; }
+.again-btn { width: 100%; padding: 16px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--white); font-family: var(--cond); font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+.again-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 12px 20px; font-family: var(--mono); font-size: 12px; z-index: 999; pointer-events: none; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; max-width: 92vw; text-align: center; }
+.toast.show  { transform: translateX(-50%) translateY(0); }
+.toast.ok    { border-color: var(--green); color: var(--green); }
+.toast.bad   { border-color: var(--red);   color: var(--red); }
+.toast.warn  { border-color: var(--amber); color: var(--amber); }
+
+/* ── SETTINGS ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+.overlay.open { display: flex; }
+.sheet { background: var(--dark); border: 1px solid var(--border); border-bottom: none; border-radius: 16px 16px 0 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; padding: 20px 16px 48px; animation: slideup .28s cubic-bezier(.34,1.2,.64,1); }
+@keyframes slideup { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sheet-handle { width: 36px; height: 3px; background: var(--mid); border-radius: 2px; margin: 0 auto 20px; }
+.sheet-title  { font-family: var(--cond); font-size: 24px; font-weight: 900; letter-spacing: 3px; color: var(--teal); margin-bottom: 20px; }
+.url-inp  { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 11px 12px; color: var(--white); font-family: var(--mono); font-size: 11px; outline: none; }
+.url-inp:focus { border-color: var(--teal); }
+.url-hint { font-size: 10px; color: var(--grey); margin-top: 6px; line-height: 1.5; }
+.sheet-div { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.sheet-btn-row { display: flex; gap: 10px; }
+.sheet-btn { flex: 1; padding: 14px; border-radius: var(--r); font-family: var(--cond); font-size: 17px; font-weight: 700; letter-spacing: 2px; cursor: pointer; border: none; }
+.sheet-btn.ghost   { background: transparent; border: 1px solid var(--mid); color: var(--grey); }
+.sheet-btn.primary { background: var(--teal); color: #000; }
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-logo">SUPER HORSE</div>
+  <div class="lock-badge">🧪 MIXING ROOM</div>
+  <div class="lock-icon">🍬</div>
+  <div class="lock-title">ENTER PASSWORD</div>
+  <div class="lock-box">
+    <input class="lock-input" type="password" id="lock-input"
+           placeholder="••••••••" autocomplete="off"
+           onkeydown="if(event.key==='Enter') checkAppPwd()">
+    <div class="lock-divider"></div>
+    <button class="lock-submit" onclick="checkAppPwd()">UNLOCK</button>
+  </div>
+  <div class="lock-error" id="lock-error"></div>
+</div>
+
+<!-- SETTINGS PWD -->
+<div class="pwd-overlay" id="pwd-overlay">
+  <div class="pwd-box">
+    <div class="pwd-title">⚙ SETTINGS</div>
+    <div class="pwd-hint">Manager password required</div>
+    <input class="pwd-input" type="password" id="pwd-input"
+           placeholder="••••••" autocomplete="off"
+           onkeydown="if(event.key==='Enter') checkSettingsPwd()">
+    <div class="pwd-row">
+      <button class="pwd-btn cancel"  onclick="closePwdPrompt()">CANCEL</button>
+      <button class="pwd-btn confirm" onclick="checkSettingsPwd()">ENTER</button>
+    </div>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay" id="cfg-overlay" onclick="cfgOutside(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">SETTINGS</div>
+    <div style="margin-bottom:12px">
+      <div class="sec-label">GOOGLE APPS SCRIPT URL</div>
+      <input class="url-inp" type="url" id="cfg-url"
+             placeholder="https://script.google.com/macros/s/…/exec">
+      <div class="url-hint">Same URL as all other Super Horse apps.</div>
+    </div>
+    <hr class="sheet-div">
+    <div class="sheet-btn-row">
+      <button class="sheet-btn ghost"   onclick="closeSettings()">CLOSE</button>
+      <button class="sheet-btn primary" onclick="saveSettings()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">SUPER HORSE<small>SUGAR &amp; DEXTROSE — IN USE</small></div>
+  <div class="hdr-right">
+    <span class="mix-badge">🧪 MIXING</span>
+    <button class="hdr-btn" onclick="openSettings()">⚙</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ══ FORM SCREEN ══ -->
+  <div id="form-screen">
+
+    <!-- TANK NUMBER -->
+    <span class="sec-label">TANK NUMBER</span>
+    <div class="tank-block">
+      <div class="tank-row">
+        <span class="tank-icon">🗂</span>
+        <input class="tank-input" type="text" id="tank-num"
+               placeholder="e.g. T-01"
+               autocomplete="off" autocorrect="off" spellcheck="false"
+               oninput="this.value=this.value.toUpperCase()">
+        <span class="tank-unit">TANK</span>
+      </div>
+    </div>
+
+    <!-- SUGAR SECTION -->
+    <div class="section-card">
+      <div class="section-hdr" style="border-left: 3px solid var(--sugar)">
+        <span class="section-icon">🍚</span>
+        <span class="section-title" style="color:var(--sugar)">SUGAR</span>
+        <span class="section-count">5 BAGS REQUIRED</span>
+      </div>
+      <div id="sugar-rows"></div>
+    </div>
+
+    <!-- DEXTROSE SECTION -->
+    <div class="section-card">
+      <div class="section-hdr" style="border-left: 3px solid var(--dex)">
+        <span class="section-icon">🧪</span>
+        <span class="section-title" style="color:var(--purple2)">DEXTROSE</span>
+        <span class="section-count">2 BAGS REQUIRED</span>
+      </div>
+      <div id="dextrose-rows"></div>
+    </div>
+
+    <button class="submit-btn" onclick="goConfirm()">REVIEW →</button>
+
+  </div>
+
+  <!-- ══ CONFIRM SCREEN ══ -->
+  <div class="confirm-screen" id="confirm-screen">
+
+    <div class="confirm-card">
+      <div class="confirm-card-hdr" style="color:var(--teal2)">📋 CONFIRM BEFORE SUBMITTING</div>
+      <div class="confirm-row">
+        <span class="k">Tank</span>
+        <span class="v hi-teal" id="conf-tank">—</span>
+      </div>
+      <div class="confirm-row">
+        <span class="k">Date / Time</span>
+        <span class="v" id="conf-datetime">—</span>
+      </div>
+      <div class="confirm-row">
+        <span class="k">Total rows</span>
+        <span class="v" id="conf-total">7 rows (5 sugar + 2 dextrose)</span>
+      </div>
+    </div>
+
+    <!-- Sugar summary -->
+    <div class="confirm-card">
+      <div class="confirm-card-hdr" style="color:var(--sugar)">🍚 SUGAR — 5 BAGS</div>
+      <div id="conf-sugar-rows"></div>
+    </div>
+
+    <!-- Dextrose summary -->
+    <div class="confirm-card">
+      <div class="confirm-card-hdr" style="color:var(--purple2)">🧪 DEXTROSE — 2 BAGS</div>
+      <div id="conf-dex-rows"></div>
+    </div>
+
+    <div class="confirm-btns">
+      <button class="btn-back"    onclick="goBack()">← BACK</button>
+      <button class="btn-confirm" id="btn-confirm" onclick="submitLog()">CONFIRM SUBMIT</button>
+    </div>
+
+  </div>
+
+  <!-- ══ SUCCESS SCREEN ══ -->
+  <div class="success-screen" id="success-screen">
+    <span class="success-icon">✅</span>
+    <div class="success-title">LOGGED</div>
+    <div class="success-sub" id="suc-sub"></div>
+    <div class="success-count" id="suc-count"></div>
+    <button class="again-btn" onclick="resetAll()">+ NEW TANK MIX</button>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PASSWORDS ─────────────────────────────────────────
+const APP_PASSWORD      = 'shsh';
+const SETTINGS_PASSWORD = 'shsh1';
+
+// ── CONFIG ────────────────────────────────────────────
+let cfg = JSON.parse(localStorage.getItem('sh_sugardex_cfg') || 'null') || {
+  webhookUrl: 'https://script.google.com/macros/s/AKfycbwXuf40vHhwxo7ILqZ5vK1Gh_snnC8weZvTtOfTkybDWyntixaoNVtLsLtxdbXy6iPE/exec',
+};
+
+// ── SUPPLIERS ─────────────────────────────────────────
+const SUGAR_SUPPLIERS = [
+  'Công ty TNHH Mía Đường Nghệ An',
+  'Công ty Cổ phần Mía Đường Sông Con xã Tân Kỳ - Tỉnh Nghệ An',
+];
+const DEX_SUPPLIERS = [
+  'QINHUANGDAO LIHUA STARCH CO.,LTD',
+  '— (Other / Blank)',
+];
+
+// ── BUILD ROWS ────────────────────────────────────────
+function buildRows(){
+  // Sugar — 5 rows
+  const sugarContainer = document.getElementById('sugar-rows');
+  sugarContainer.innerHTML = '';
+  for(let i=1; i<=5; i++){
+    sugarContainer.appendChild(makeRow('sugar', i, SUGAR_SUPPLIERS, 'selected-sugar'));
+  }
+  // Dextrose — 2 rows
+  const dexContainer = document.getElementById('dextrose-rows');
+  dexContainer.innerHTML = '';
+  for(let i=1; i<=2; i++){
+    dexContainer.appendChild(makeRow('dex', i, DEX_SUPPLIERS, 'selected-dex'));
+  }
+}
+
+function makeRow(type, num, suppliers, selClass){
+  const div = document.createElement('div');
+  div.className = 'ingredient-row';
+  div.id = `row-${type}-${num}`;
+
+  const today = todayISO();
+
+  div.innerHTML = `
+    <div class="row-num">BAG ${num}</div>
+    <div class="sup-pills">
+      ${suppliers.map((s,i) => `
+        <div class="sup-pill" id="pill-${type}-${num}-${i}"
+             onclick="selectSupplier('${type}',${num},${i},'${selClass}')">
+          <span class="pill-check">✅</span>
+          <span class="pill-text">${s}</span>
+        </div>`).join('')}
+    </div>
+    <div class="date-row">
+      <span class="date-label">PROD DATE</span>
+      <input class="date-inp" type="date" id="date-${type}-${num}" value="${today}" max="${today}">
+    </div>
+  `;
+  return div;
+}
+
+// Track selected suppliers: { 'sugar-1': 0, 'sugar-2': 1, ... }
+const selected = {};
+
+function selectSupplier(type, num, idx, selClass){
+  const key = `${type}-${num}`;
+  const suppliers = type === 'sugar' ? SUGAR_SUPPLIERS : DEX_SUPPLIERS;
+
+  selected[key] = idx;
+
+  // Update pill UI
+  suppliers.forEach((_,i) => {
+    const pill = document.getElementById(`pill-${type}-${num}-${i}`);
+    pill.classList.remove('selected-sugar','selected-dex');
+    if(i === idx) pill.classList.add(selClass);
+  });
+}
+
+// ── NAVIGATION ────────────────────────────────────────
+function goConfirm(){
+  const tank = document.getElementById('tank-num').value.trim().toUpperCase();
+  if(!tank){ showToast('Enter the tank number','bad'); return; }
+
+  // Validate all rows have supplier selected and date filled
+  for(let i=1;i<=5;i++){
+    if(selected[`sugar-${i}`] === undefined){ showToast(`Select supplier for Sugar Bag ${i}`,'bad'); return; }
+    if(!document.getElementById(`date-sugar-${i}`).value){ showToast(`Enter production date for Sugar Bag ${i}`,'bad'); return; }
+  }
+  for(let i=1;i<=2;i++){
+    if(selected[`dex-${i}`] === undefined){ showToast(`Select supplier for Dextrose Bag ${i}`,'bad'); return; }
+    if(!document.getElementById(`date-dex-${i}`).value){ showToast(`Enter production date for Dextrose Bag ${i}`,'bad'); return; }
+  }
+
+  const now = new Date();
+  document.getElementById('conf-tank').textContent    = tank;
+  document.getElementById('conf-datetime').textContent = `${fd(now)} · ${ft(now)}`;
+
+  // Sugar summary
+  let sugarHtml = '';
+  for(let i=1;i<=5;i++){
+    const sup = SUGAR_SUPPLIERS[selected[`sugar-${i}`]];
+    const dt  = document.getElementById(`date-sugar-${i}`).value;
+    sugarHtml += `<div class="confirm-row">
+      <span class="k">Bag ${i}</span>
+      <span class="v hi-sugar">${fmtDate(dt)}<br><span style="color:var(--grey);font-size:10px">${sup}</span></span>
+    </div>`;
+  }
+  document.getElementById('conf-sugar-rows').innerHTML = sugarHtml;
+
+  // Dextrose summary
+  let dexHtml = '';
+  for(let i=1;i<=2;i++){
+    const sup = DEX_SUPPLIERS[selected[`dex-${i}`]];
+    const dt  = document.getElementById(`date-dex-${i}`).value;
+    dexHtml += `<div class="confirm-row">
+      <span class="k">Bag ${i}</span>
+      <span class="v hi-dex">${fmtDate(dt)}<br><span style="color:var(--grey);font-size:10px">${sup}</span></span>
+    </div>`;
+  }
+  document.getElementById('conf-dex-rows').innerHTML = dexHtml;
+
+  show('confirm-screen');
+  window.scrollTo(0,0);
+}
+
+function goBack(){
+  show('form-screen');
+  window.scrollTo(0,0);
+}
+
+// ── SUBMIT ────────────────────────────────────────────
+async function submitLog(){
+  const tank = document.getElementById('tank-num').value.trim().toUpperCase();
+  const now  = new Date();
+  const btn  = document.getElementById('btn-confirm');
+  btn.textContent='…'; btn.disabled=true;
+
+  const rows = [];
+
+  // Build one row per bag
+  for(let i=1;i<=5;i++){
+    rows.push({
+      form_type:     'SUGAR_DEXTROSE_INUSE',
+      timestamp:     now.toISOString(),
+      date:          fd(now),
+      time:          ft(now),
+      yyyymmdd:      toYMD(now),
+      yyyymm:        toYM(now),
+      tank_number:   tank,
+      ingredient:    'SUGAR',
+      bag_number:    i,
+      supplier:      SUGAR_SUPPLIERS[selected[`sugar-${i}`]],
+      prod_date:     fmtDate(document.getElementById(`date-sugar-${i}`).value),
+      app_version:   '1.0',
+    });
+  }
+  for(let i=1;i<=2;i++){
+    rows.push({
+      form_type:     'SUGAR_DEXTROSE_INUSE',
+      timestamp:     now.toISOString(),
+      date:          fd(now),
+      time:          ft(now),
+      yyyymmdd:      toYMD(now),
+      yyyymm:        toYM(now),
+      tank_number:   tank,
+      ingredient:    'DEXTROSE',
+      bag_number:    i,
+      supplier:      DEX_SUPPLIERS[selected[`dex-${i}`]],
+      prod_date:     fmtDate(document.getElementById(`date-dex-${i}`).value),
+      app_version:   '1.0',
+    });
+  }
+
+  // Local backup
+  const log=JSON.parse(localStorage.getItem('sh_sugardex_log')||'[]');
+  rows.forEach(r=>log.push(r));
+  localStorage.setItem('sh_sugardex_log',JSON.stringify(log));
+
+  let allOk = true;
+  if(cfg.webhookUrl){
+    for(const row of rows){
+      try{
+        await fetch(cfg.webhookUrl,{
+          method:'POST', mode:'no-cors',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(row)
+        });
+      } catch { allOk=false; }
+    }
+    if(!allOk){ showToast('Some rows failed — check webhook','bad'); btn.textContent='CONFIRM SUBMIT'; btn.disabled=false; return; }
+    showToast('✓ All rows logged','ok');
+  } else {
+    showToast('Saved locally — no webhook set','warn');
+  }
+
+  document.getElementById('suc-sub').textContent   = `Tank ${tank} · ${fd(now)} · ${ft(now)}`;
+  document.getElementById('suc-count').textContent = `7 rows logged (5 sugar + 2 dextrose)`;
+  show('success-screen');
+  window.scrollTo(0,0);
+}
+
+function resetAll(){
+  document.getElementById('tank-num').value='';
+  Object.keys(selected).forEach(k=>delete selected[k]);
+  buildRows();
+  document.getElementById('btn-confirm').textContent='CONFIRM SUBMIT';
+  document.getElementById('btn-confirm').disabled=false;
+  show('form-screen');
+  window.scrollTo(0,0);
+}
+
+function show(id){
+  ['form-screen','confirm-screen','success-screen'].forEach(s=>{
+    document.getElementById(s).style.display = s===id ? 'block' : 'none';
+  });
+}
+
+// ── PASSWORDS ─────────────────────────────────────────
+function checkAppPwd(){
+  const val=document.getElementById('lock-input').value;
+  if(val===APP_PASSWORD){
+    document.getElementById('lock-screen').classList.add('hidden');
+    document.getElementById('lock-input').value='';
+    document.getElementById('lock-error').textContent='';
+  } else {
+    const e=document.getElementById('lock-error');
+    e.textContent='Incorrect password';
+    document.getElementById('lock-input').value='';
+    document.getElementById('lock-input').focus();
+    setTimeout(()=>e.textContent='',2500);
+  }
+}
+function openSettings(){ document.getElementById('pwd-overlay').classList.add('open'); setTimeout(()=>document.getElementById('pwd-input')?.focus(),100); }
+function checkSettingsPwd(){
+  const val=document.getElementById('pwd-input').value;
+  if(val===SETTINGS_PASSWORD){
+    document.getElementById('pwd-overlay').classList.remove('open');
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-error').textContent='';
+    _openSettingsPanel();
+  } else {
+    const e=document.getElementById('pwd-error');
+    e.textContent='Incorrect password';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+    setTimeout(()=>e.textContent='',2500);
+  }
+}
+function closePwdPrompt(){ document.getElementById('pwd-overlay').classList.remove('open'); document.getElementById('pwd-input').value=''; document.getElementById('pwd-error').textContent=''; }
+function _openSettingsPanel(){ document.getElementById('cfg-url').value=cfg.webhookUrl; document.getElementById('cfg-overlay').classList.add('open'); }
+function closeSettings(){ document.getElementById('cfg-overlay').classList.remove('open'); }
+function cfgOutside(e){ if(e.target===document.getElementById('cfg-overlay')) closeSettings(); }
+function saveSettings(){ cfg.webhookUrl=document.getElementById('cfg-url').value.trim(); localStorage.setItem('sh_sugardex_cfg',JSON.stringify(cfg)); showToast('Settings saved','ok'); closeSettings(); }
+
+// ── UTILS ─────────────────────────────────────────────
+function fd(d){ return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`; }
+function ft(d){ return `${p(d.getHours())}:${p(d.getMinutes())}`; }
+function toYMD(d){ return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`; }
+function toYM(d) { return `${d.getFullYear()}${p(d.getMonth()+1)}`; }
+function p(n)   { return String(n).padStart(2,'0'); }
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function fmtDate(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+
+let _tt;
+function showToast(msg,type='ok'){ const el=document.getElementById('toast'); el.textContent=msg; el.className=`toast ${type} show`; clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000); }
+
+// ── INIT ──────────────────────────────────────────────
+buildRows();
+show('form-screen');
+document.getElementById('lock-screen').classList.remove('hidden');
+setTimeout(()=>document.getElementById('lock-input')?.focus(),100);
+</script>
+</body>
+</html>
