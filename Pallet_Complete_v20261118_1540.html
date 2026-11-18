@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pallet Complete — Super Horse</title>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap');
+
+/* ════════════════════════════════════════════════════════════
+   PALLET_COMPLETE — Super Horse SH OPS
+   Captures one completed (filled) pallet going into the warehouse.
+   Sheet tab: PALLET_COMPLETE   form_type: PALLET_COMPLETE
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --black:  #0a0a0a;
+  --dark:   #111111;
+  --panel:  #181818;
+  --panel2: #1e1e1e;
+  --border: #2a2a2a;
+  --mid:    #383838;
+  --acc:    #6366f1;   /* app accent — indigo */
+  --acc2:   #818cf8;   /* light accent */
+  --accbg:  rgba(99,102,241,.10);
+  --amber:  #f5a623;
+  --red:    #e74c3c;
+  --white:  #f0f0f0;
+  --grey:   #888;
+  --mono:   'Share Tech Mono', monospace;
+  --cond:   'Barlow Condensed', sans-serif;
+  --body:   'Barlow', sans-serif;
+  --r:      8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--black); color: var(--white); font-family: var(--body); min-height: 100vh; overscroll-behavior: none; }
+
+/* ── LOCK ── */
+.lock-screen { position: fixed; inset: 0; z-index: 900; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
+.lock-screen.hidden { display: none; }
+.lock-logo  { font-family: var(--cond); font-weight: 900; font-size: 28px; letter-spacing: 4px; color: var(--acc2); margin-bottom: 2px; text-align: center; }
+.lock-badge { font-family: var(--mono); font-size: 9px; color: var(--acc2); letter-spacing: 3px; margin-bottom: 36px; text-align: center; border: 1px solid rgba(99,102,241,.5); border-radius: 4px; padding: 3px 12px; display: inline-block; }
+.lock-icon  { font-size: 44px; margin-bottom: 16px; }
+.lock-title { font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--white); margin-bottom: 20px; text-align: center; }
+.lock-box   { width: 100%; max-width: 320px; background: var(--panel); border: 1px solid var(--mid); border-radius: var(--r); overflow: hidden; }
+.lock-input { width: 100%; background: transparent; border: none; padding: 16px 20px; color: var(--white); font-family: var(--mono); font-size: 20px; letter-spacing: 4px; outline: none; text-align: center; }
+.lock-input::placeholder { color: var(--border); letter-spacing: 2px; font-size: 14px; }
+.lock-divider { height: 1px; background: var(--mid); }
+.lock-submit  { width: 100%; padding: 16px; background: var(--acc); border: none; color: #fff; font-family: var(--cond); font-size: 20px; font-weight: 900; letter-spacing: 3px; cursor: pointer; }
+.lock-error { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--red); letter-spacing: 1px; text-align: center; min-height: 16px; }
+
+/* ── SETTINGS PWD ── */
+.pwd-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; padding: 24px; }
+.pwd-overlay.open { display: flex; }
+.pwd-box    { background: var(--dark); border: 1px solid var(--mid); border-radius: var(--r); padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; }
+.pwd-title  { font-family: var(--cond); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--amber); margin-bottom: 6px; }
+.pwd-hint   { font-size: 12px; color: var(--grey); margin-bottom: 20px; }
+.pwd-input  { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 13px; color: var(--white); font-family: var(--mono); font-size: 18px; letter-spacing: 4px; outline: none; text-align: center; margin-bottom: 12px; }
+.pwd-input:focus { border-color: var(--amber); }
+.pwd-row    { display: flex; gap: 10px; }
+.pwd-btn    { flex: 1; padding: 13px; border-radius: 6px; font-family: var(--cond); font-size: 16px; font-weight: 700; letter-spacing: 1px; cursor: pointer; border: none; }
+.pwd-btn.cancel  { background: transparent; border: 1px solid var(--mid); color: var(--grey); }
+.pwd-btn.confirm { background: var(--amber); color: #000; }
+.pwd-error  { font-family: var(--mono); font-size: 11px; color: var(--red); margin-top: 10px; min-height: 16px; }
+
+/* ── WARNING MODAL (boxes > 165, duplicate pallet) ── */
+.warn-overlay { position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.9); display: none; align-items: center; justify-content: center; padding: 24px; }
+.warn-overlay.open { display: flex; }
+.warn-box   { background: var(--dark); border: 2px solid var(--amber); border-radius: var(--r); padding: 26px 22px; width: 100%; max-width: 360px; text-align: center; animation: pop .3s cubic-bezier(.34,1.56,.64,1); }
+.warn-icon  { font-size: 40px; display: block; margin-bottom: 10px; }
+.warn-title { font-family: var(--cond); font-size: 22px; font-weight: 900; letter-spacing: 2px; color: var(--amber); margin-bottom: 8px; }
+.warn-big   { font-family: var(--cond); font-size: 72px; font-weight: 900; color: var(--amber); line-height: 1; margin: 6px 0; }
+.warn-msg   { font-size: 14px; color: var(--white); line-height: 1.5; margin-bottom: 20px; }
+.warn-btns  { display: flex; flex-direction: column; gap: 10px; }
+.warn-btn   { padding: 15px; border-radius: var(--r); font-family: var(--cond); font-size: 18px; font-weight: 900; letter-spacing: 2px; cursor: pointer; border: none; }
+.warn-btn.yes { background: var(--amber); color: #000; }
+.warn-btn.no  { background: transparent; border: 1px solid var(--mid); color: var(--white); }
+
+/* ── DUPLICATE BLOCK MODAL ── */
+.dup-overlay { position: fixed; inset: 0; z-index: 650; background: rgba(0,0,0,.92); display: none; align-items: center; justify-content: center; padding: 24px; }
+.dup-overlay.open { display: flex; }
+.dup-box { background: var(--dark); border: 2px solid var(--red); border-radius: var(--r); padding: 26px 22px; width: 100%; max-width: 360px; text-align: center; animation: pop .3s cubic-bezier(.34,1.56,.64,1); }
+.dup-title { font-family: var(--cond); font-size: 24px; font-weight: 900; letter-spacing: 2px; color: var(--red); margin: 6px 0 8px; }
+.dup-big { font-family: var(--mono); font-size: 40px; color: var(--red); letter-spacing: 5px; margin: 4px 0 10px; }
+.dup-msg { font-size: 14px; color: var(--white); line-height: 1.5; margin-bottom: 20px; }
+.dup-mgr { display: none; margin-top: 14px; }
+.dup-mgr.open { display: block; }
+.dup-mgr input { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 12px; color: var(--white); font-family: var(--mono); font-size: 18px; letter-spacing: 4px; outline: none; text-align: center; margin-bottom: 10px; }
+.dup-mgr input:focus { border-color: var(--amber); }
+.dup-link { background: transparent; border: none; color: var(--grey); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; cursor: pointer; margin-top: 14px; text-decoration: underline; }
+
+/* ── SCANNER MODAL ── */
+.qr-modal { position: fixed; inset: 0; z-index: 800; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+.qr-modal.open { display: flex; }
+.qr-video-wrap { position: relative; width: 100%; max-width: 420px; }
+.qr-video { width: 100%; display: block; }
+.qr-overlay-box { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.qr-finder { width: 280px; height: 120px; border: 3px solid var(--acc); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,.55); animation: pulse-qr 1.5s ease-in-out infinite; }
+@keyframes pulse-qr { 0%,100%{border-color:var(--acc)} 50%{border-color:var(--acc2)} }
+.qr-label { position: absolute; top: -40px; left: 0; right: 0; text-align: center; font-family: var(--cond); font-size: 18px; font-weight: 700; letter-spacing: 3px; color: var(--white); }
+.qr-hint-txt { position: absolute; bottom: -36px; left: 0; right: 0; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--acc2); letter-spacing: 2px; }
+.qr-cancel-btn { margin-top: 32px; padding: 14px 32px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--grey); font-family: var(--cond); font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+
+/* ── HEADER ── */
+.hdr { position: sticky; top: 0; z-index: 50; background: var(--dark); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.hdr-brand { font-family: var(--cond); font-weight: 900; font-size: 20px; letter-spacing: 3px; color: var(--acc2); line-height: 1; }
+.hdr-brand small { display: block; font-size: 9px; font-weight: 400; color: var(--grey); letter-spacing: 4px; margin-top: 2px; }
+.hdr-ver { display: block; font-family: var(--mono); font-size: 8px; color: var(--mid); letter-spacing: 1px; margin-top: 3px; }
+.hdr-right { display: flex; gap: 8px; align-items: center; }
+.app-badge { background: rgba(99,102,241,.15); border: 1px solid var(--acc); border-radius: 4px; font-family: var(--mono); font-size: 9px; color: var(--acc2); letter-spacing: 2px; padding: 3px 8px; }
+.hdr-btn { font-family: var(--mono); font-size: 11px; background: transparent; border: 1px solid var(--mid); color: var(--grey); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+.hdr-btn:hover { border-color: var(--acc); color: var(--acc2); }
+
+/* ── MAIN ── */
+.main { padding: 20px 16px 48px; max-width: 560px; margin: 0 auto; }
+.sec-label { font-family: var(--mono); font-size: 9px; letter-spacing: 3px; color: var(--grey); margin-bottom: 8px; display: block; }
+.field-block { margin-bottom: 22px; }
+
+/* Generic text / number inputs */
+.txt-inp {
+  width: 100%; background: var(--panel); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 15px 16px; color: var(--white);
+  font-family: var(--body); font-size: 18px; font-weight: 500; outline: none;
+  transition: border-color .2s;
+}
+.txt-inp:focus { border-color: var(--acc); }
+.txt-inp.ok    { border-color: var(--acc); }
+.txt-inp.bad   { border-color: var(--red); }
+.txt-inp::placeholder { color: var(--mid); }
+
+/* ── PALLET ID BLOCK ── */
+.pallet-block {
+  background: var(--panel); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 18px; text-align: center;
+  cursor: pointer; transition: all .2s; margin-bottom: 10px;
+}
+.pallet-block:hover { border-color: var(--acc); }
+.pallet-block.scanned { border-color: var(--acc); background: var(--accbg); }
+.pallet-icon   { font-size: 32px; display: block; margin-bottom: 8px; }
+.pallet-prompt { font-family: var(--cond); font-size: 19px; font-weight: 700; letter-spacing: 2px; color: var(--grey); }
+.pallet-value  { font-family: var(--mono); font-size: 38px; color: var(--acc2); letter-spacing: 5px; display: none; }
+.pallet-rescan { font-family: var(--mono); font-size: 10px; color: var(--grey); margin-top: 8px; display: none; }
+.manual-row { display: flex; gap: 8px; align-items: stretch; }
+.manual-row .txt-inp { font-family: var(--mono); font-size: 18px; letter-spacing: 3px; text-align: center; padding: 12px; }
+.manual-or { font-family: var(--mono); font-size: 9px; color: var(--grey); letter-spacing: 2px; text-align: center; margin: 4px 0 8px; }
+
+/* ── BOXES ── */
+.boxes-wrap { position: relative; }
+.boxes-inp {
+  width: 100%; background: var(--panel); border: 2px solid var(--border);
+  border-radius: var(--r); padding: 14px; color: var(--acc2);
+  font-family: var(--cond); font-size: 72px; font-weight: 900;
+  text-align: center; outline: none; line-height: 1;
+  -webkit-appearance: none; appearance: none; transition: border-color .2s, color .2s;
+}
+.boxes-inp::placeholder { color: var(--mid); }
+.boxes-inp:focus { border-color: var(--acc); }
+.boxes-inp.warn  { border-color: var(--amber); color: var(--amber); }
+.boxes-inp.bad   { border-color: var(--red);   color: var(--red); }
+.boxes-inp::-webkit-inner-spin-button,
+.boxes-inp::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.boxes-unit { position: absolute; right: 16px; bottom: 14px; font-family: var(--mono); font-size: 11px; color: var(--grey); letter-spacing: 2px; pointer-events: none; }
+.boxes-hint { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; margin-top: 8px; min-height: 14px; color: var(--grey); text-align: center; }
+.boxes-hint.warn { color: var(--amber); }
+.boxes-hint.bad  { color: var(--red); }
+
+/* ── TIME ── */
+.time-row { display: flex; gap: 10px; align-items: stretch; }
+.time-inp { flex: 1; font-family: var(--mono); font-size: 26px; text-align: center; letter-spacing: 2px; color-scheme: dark; }
+.now-btn { padding: 0 18px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--grey); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; cursor: pointer; }
+.now-btn:hover { border-color: var(--acc); color: var(--acc2); }
+
+/* ── BUTTONS ── */
+.submit-btn { width: 100%; padding: 18px; background: var(--acc); border: none; border-radius: var(--r); color: #fff; font-family: var(--cond); font-size: 22px; font-weight: 900; letter-spacing: 3px; cursor: pointer; transition: all .15s; margin-top: 6px; }
+.submit-btn:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+.submit-btn:disabled { background: var(--mid); color: var(--grey); cursor: not-allowed; transform: none; }
+
+/* ── CONFIRM SCREEN ── */
+.confirm-screen { display: none; }
+.confirm-card { background: var(--accbg); border: 1.5px solid var(--acc); border-radius: var(--r); padding: 16px 18px; margin-bottom: 16px; }
+.confirm-title { font-family: var(--cond); font-size: 15px; font-weight: 700; letter-spacing: 2px; color: var(--acc2); margin-bottom: 12px; }
+.confirm-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 12px; }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row .k { color: var(--grey); flex-shrink: 0; }
+.confirm-row .v { font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; word-break: break-word; }
+.confirm-row .v.hi { color: var(--acc2); font-size: 16px; }
+.confirm-big { text-align: center; background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+.confirm-big-lbl { font-family: var(--mono); font-size: 9px; color: var(--acc2); letter-spacing: 3px; margin-bottom: 6px; display: block; }
+.confirm-big-num { font-family: var(--cond); font-size: 72px; font-weight: 900; color: var(--acc2); line-height: 1; display: block; }
+.confirm-big-num.warn { color: var(--amber); }
+.confirm-big-sub { font-family: var(--mono); font-size: 10px; color: var(--amber); margin-top: 6px; letter-spacing: 1px; min-height: 12px; }
+.confirm-btns { display: flex; gap: 12px; margin-top: 4px; }
+.btn-edit    { flex: 1; padding: 15px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--grey); font-family: var(--cond); font-size: 16px; font-weight: 700; letter-spacing: 1px; cursor: pointer; }
+.btn-edit:hover { border-color: var(--amber); color: var(--amber); }
+.btn-confirm { flex: 2; padding: 16px; background: var(--acc); border: none; border-radius: var(--r); color: #fff; font-family: var(--cond); font-size: 20px; font-weight: 900; letter-spacing: 3px; cursor: pointer; }
+.btn-confirm:disabled { background: var(--mid); color: var(--grey); cursor: not-allowed; }
+
+/* ── SUCCESS ── */
+.success-screen { display: none; text-align: center; padding: 40px 0 20px; }
+.success-icon  { font-size: 56px; display: block; margin-bottom: 16px; animation: pop .45s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop { from{transform:scale(0) rotate(-15deg)} to{transform:scale(1) rotate(0)} }
+.success-title { font-family: var(--cond); font-size: 40px; font-weight: 900; letter-spacing: 4px; color: var(--acc2); margin-bottom: 6px; }
+.success-pallet { font-family: var(--mono); font-size: 18px; color: var(--acc2); letter-spacing: 3px; margin-bottom: 4px; }
+.success-count { font-family: var(--cond); font-size: 56px; font-weight: 900; color: var(--white); margin-bottom: 4px; }
+.success-sub { font-family: var(--mono); font-size: 11px; color: var(--grey); letter-spacing: 2px; margin-bottom: 28px; }
+.again-btn { width: 100%; padding: 16px; background: transparent; border: 1px solid var(--mid); border-radius: var(--r); color: var(--white); font-family: var(--cond); font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+.again-btn:hover { border-color: var(--acc); color: var(--acc2); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 12px 20px; font-family: var(--mono); font-size: 12px; z-index: 999; pointer-events: none; transition: transform .3s cubic-bezier(.34,1.56,.64,1); max-width: 92vw; text-align: center; }
+.toast.show  { transform: translateX(-50%) translateY(0); }
+.toast.ok    { border-color: var(--acc);   color: var(--acc2); }
+.toast.bad   { border-color: var(--red);   color: var(--red); }
+.toast.warn  { border-color: var(--amber); color: var(--amber); }
+.toast.info  { border-color: var(--acc);   color: var(--acc2); }
+
+/* ── SETTINGS ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+.overlay.open { display: flex; }
+.sheet { background: var(--dark); border: 1px solid var(--border); border-bottom: none; border-radius: 16px 16px 0 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; padding: 20px 16px 48px; animation: slideup .28s cubic-bezier(.34,1.2,.64,1); }
+@keyframes slideup { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sheet-handle { width: 36px; height: 3px; background: var(--mid); border-radius: 2px; margin: 0 auto 20px; }
+.sheet-title  { font-family: var(--cond); font-size: 24px; font-weight: 900; letter-spacing: 3px; color: var(--acc2); margin-bottom: 20px; }
+.url-inp  { width: 100%; background: var(--panel); border: 1px solid var(--mid); border-radius: 6px; padding: 11px 12px; color: var(--white); font-family: var(--mono); font-size: 11px; outline: none; }
+.url-inp:focus { border-color: var(--acc); }
+.url-hint { font-size: 10px; color: var(--grey); margin-top: 6px; line-height: 1.5; }
+.sheet-div { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.sheet-btn-row { display: flex; gap: 10px; }
+.sheet-btn { flex: 1; padding: 14px; border-radius: var(--r); font-family: var(--cond); font-size: 17px; font-weight: 700; letter-spacing: 2px; cursor: pointer; border: none; }
+.sheet-btn.ghost   { background: transparent; border: 1px solid var(--mid); color: var(--grey); }
+.sheet-btn.primary { background: var(--acc); color: #fff; }
+.sheet-danger { width:100%; padding:13px; background:transparent; border:1px solid rgba(231,76,60,.4); border-radius:var(--r); color:var(--red); font-family:var(--mono); font-size:11px; letter-spacing:2px; cursor:pointer; margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-logo">SUPER HORSE</div>
+  <div class="lock-badge">📦 PALLET COMPLETE</div>
+  <div class="lock-icon">🏗️</div>
+  <div class="lock-title" data-i18n="enterPwd">ENTER PASSWORD</div>
+  <div class="lock-box">
+    <input class="lock-input" type="password" id="lock-input"
+           placeholder="••••••••" autocomplete="off"
+           onkeydown="if(event.key==='Enter') checkAppPwd()">
+    <div class="lock-divider"></div>
+    <button class="lock-submit" onclick="checkAppPwd()" data-i18n="unlock">UNLOCK</button>
+  </div>
+  <div class="lock-error" id="lock-error"></div>
+</div>
+
+<!-- SETTINGS PWD -->
+<div class="pwd-overlay" id="pwd-overlay">
+  <div class="pwd-box">
+    <div class="pwd-title">⚙ SETTINGS</div>
+    <div class="pwd-hint" data-i18n="mgrPwd">Manager password required</div>
+    <input class="pwd-input" type="password" id="pwd-input"
+           placeholder="••••••" autocomplete="off"
+           onkeydown="if(event.key==='Enter') checkSettingsPwd()">
+    <div class="pwd-row">
+      <button class="pwd-btn cancel"  onclick="closePwdPrompt()" data-i18n="cancel">CANCEL</button>
+      <button class="pwd-btn confirm" onclick="checkSettingsPwd()" data-i18n="enter">ENTER</button>
+    </div>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+<!-- WARNING MODAL (generic — used for >165 boxes and duplicate pallet) -->
+<div class="warn-overlay" id="warn-overlay">
+  <div class="warn-box">
+    <span class="warn-icon">⚠️</span>
+    <div class="warn-title" id="warn-title">CHECK</div>
+    <div class="warn-big"   id="warn-big"></div>
+    <div class="warn-msg"   id="warn-msg"></div>
+    <div class="warn-btns">
+      <button class="warn-btn yes" id="warn-yes">YES</button>
+      <button class="warn-btn no"  id="warn-no">NO</button>
+    </div>
+  </div>
+</div>
+
+<!-- DUPLICATE BLOCK MODAL -->
+<div class="dup-overlay" id="dup-overlay">
+  <div class="dup-box">
+    <span class="warn-icon">⛔</span>
+    <div class="dup-title" data-i18n="dupTitle">PALLET ALREADY SUBMITTED</div>
+    <div class="dup-big" id="dup-big"></div>
+    <div class="dup-msg" id="dup-msg"></div>
+    <div class="warn-btns">
+      <button class="warn-btn yes" id="dup-ok" data-i18n="dupOk">OK — CHECK PALLET</button>
+    </div>
+    <button class="dup-link" id="dup-link" data-i18n="dupMgr">MANAGER OVERRIDE</button>
+    <div class="dup-mgr" id="dup-mgr">
+      <input type="password" id="dup-pwd" data-i18n-ph="dupPwdPh" placeholder="Manager password" autocomplete="off">
+      <button class="warn-btn no" id="dup-go" data-i18n="dupGo" style="width:100%">SUBMIT ANYWAY</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER MODAL -->
+<div class="qr-modal" id="qr-modal">
+  <div class="qr-video-wrap">
+    <video class="qr-video" id="qr-video" playsinline autoplay muted></video>
+    <div class="qr-overlay-box">
+      <div style="position:relative">
+        <div class="qr-label" data-i18n="scanPalletQr">SCAN PALLET QR</div>
+        <div class="qr-finder"></div>
+        <div class="qr-hint-txt" data-i18n="pointAtQr">Point at the pallet QR code</div>
+      </div>
+    </div>
+  </div>
+  <button class="qr-cancel-btn" onclick="cancelQR()" data-i18n="cancel">CANCEL</button>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay" id="cfg-overlay" onclick="cfgOutside(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">SETTINGS</div>
+    <div style="margin-bottom:12px">
+      <div class="sec-label">GOOGLE APPS SCRIPT URL</div>
+      <input class="url-inp" type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/…/exec">
+      <div class="url-hint">Same URL as all other Super Horse apps.</div>
+    </div>
+    <hr class="sheet-div">
+    <div class="sheet-btn-row">
+      <button class="sheet-btn ghost"   onclick="closeSettings()">CLOSE</button>
+      <button class="sheet-btn primary" onclick="saveSettings()">SAVE</button>
+    </div>
+    <hr class="sheet-div">
+    <button class="sheet-danger" onclick="if(confirm('Clear current session? Unsaved entry will be lost.')){resetAll();closeSettings();}">
+      🗑 CLEAR CURRENT SESSION
+    </button>
+    <button class="sheet-danger" onclick="if(confirm('Clear the duplicate-check history on this device?')){localStorage.removeItem(LOG_KEY);showToast('History cleared','warn');}">
+      🗑 CLEAR DEVICE HISTORY (DUPLICATE CHECK)
+    </button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">SUPER HORSE<small>PALLET COMPLETE — WAREHOUSE</small><span class="hdr-ver" id="hdr-ver"></span></div>
+  <div class="hdr-right">
+    <span class="app-badge">📦 PALLET</span>
+    <button class="hdr-btn" id="lang-btn" onclick="toggleLang()">VI</button>
+    <button class="hdr-btn" onclick="openSettings()">⚙</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ══ FORM SCREEN ══ -->
+  <div id="form-screen">
+
+    <!-- STEP 1: STAFF NAME (free text) -->
+    <div class="field-block">
+      <span class="sec-label" data-i18n="step1">STEP 1 — STAFF NAME</span>
+      <input class="txt-inp" type="text" id="staff-inp" maxlength="40"
+             autocomplete="off" autocapitalize="words" spellcheck="false"
+             data-i18n-ph="staffPh" placeholder="Type your name"
+             oninput="onStaffInput()">
+    </div>
+
+    <!-- STEP 2: PALLET ID (scan or type) -->
+    <div class="field-block">
+      <span class="sec-label" data-i18n="step2">STEP 2 — PALLET ID</span>
+      <div class="pallet-block" id="pallet-block" onclick="startScanner()">
+        <span class="pallet-icon">📦</span>
+        <div class="pallet-value"  id="pallet-value">—</div>
+        <div class="pallet-prompt" id="pallet-prompt" data-i18n="tapScan">TAP TO SCAN PALLET QR</div>
+        <div class="pallet-rescan" id="pallet-rescan" data-i18n="rescan">↺ tap to scan again</div>
+      </div>
+      <div class="manual-or" data-i18n="orType">— OR TYPE 5-DIGIT PALLET ID —</div>
+      <div class="manual-row">
+        <input class="txt-inp" type="text" id="pallet-inp" inputmode="numeric" maxlength="5"
+               autocomplete="off" placeholder="49901" oninput="onPalletTyped()">
+      </div>
+    </div>
+
+    <!-- STEP 3: BOXES -->
+    <div class="field-block">
+      <span class="sec-label" data-i18n="step3">STEP 3 — BOXES ON PALLET</span>
+      <div class="boxes-wrap">
+        <input class="boxes-inp" type="text" id="boxes-inp" inputmode="numeric" maxlength="3"
+               autocomplete="off" placeholder="0" oninput="onBoxesInput()">
+        <span class="boxes-unit" data-i18n="boxUnit">BOXES</span>
+      </div>
+      <div class="boxes-hint" id="boxes-hint"></div>
+    </div>
+
+    <!-- STEP 4: COMPLETED TIME (HH:MM) -->
+    <div class="field-block">
+      <span class="sec-label" data-i18n="step4">STEP 4 — TIME PALLET COMPLETED (HH:MM)</span>
+      <div class="time-row">
+        <input class="txt-inp time-inp" type="time" id="time-inp" step="60" oninput="onTimeInput()">
+        <button class="now-btn" onclick="setTimeNow()" data-i18n="now">NOW</button>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="goConfirm()" data-i18n="review">REVIEW →</button>
+  </div>
+
+  <!-- ══ CONFIRM SCREEN ══ -->
+  <div class="confirm-screen" id="confirm-screen">
+    <div class="confirm-card">
+      <div class="confirm-title" data-i18n="summary">📦 PALLET SUMMARY</div>
+      <div class="confirm-row"><span class="k" data-i18n="kStaff">Staff</span>         <span class="v"    id="conf-staff">—</span></div>
+      <div class="confirm-row"><span class="k" data-i18n="kPallet">Pallet ID</span>    <span class="v hi" id="conf-pallet">—</span></div>
+      <div class="confirm-row"><span class="k" data-i18n="kDate">Date</span>           <span class="v"    id="conf-date">—</span></div>
+      <div class="confirm-row"><span class="k" data-i18n="kCompleted">Completed time</span> <span class="v" id="conf-ctime">—</span></div>
+    </div>
+
+    <div class="confirm-big">
+      <span class="confirm-big-lbl" data-i18n="boxesOnPallet">BOXES ON PALLET</span>
+      <span class="confirm-big-num" id="conf-boxes">0</span>
+      <div class="confirm-big-sub" id="conf-boxes-sub"></div>
+    </div>
+
+    <div class="confirm-btns">
+      <button class="btn-edit"    onclick="show('form-screen')" data-i18n="edit">✎ EDIT</button>
+      <button class="btn-confirm" id="btn-confirm" onclick="submitLog()" data-i18n="confirmSubmit">CONFIRM SUBMIT</button>
+    </div>
+  </div>
+
+  <!-- ══ SUCCESS SCREEN ══ -->
+  <div class="success-screen" id="success-screen">
+    <span class="success-icon">✅</span>
+    <div class="success-title" data-i18n="saved">SAVED</div>
+    <div class="success-pallet" id="suc-pallet"></div>
+    <div class="success-count"  id="suc-count">0</div>
+    <div class="success-sub"    id="suc-sub"></div>
+    <button class="again-btn" onclick="resetAll()" data-i18n="newPallet">+ NEW PALLET</button>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════
+const APP_PASSWORD      = 'shsh';
+const SETTINGS_PASSWORD = 'shsh1';
+const APP_VERSION       = '20261118_1200';
+const FORM_TYPE         = 'PALLET_COMPLETE';
+
+const BOX_MIN      = 1;     // 0 or negative not allowed
+const BOX_MAX      = 200;   // hard ceiling
+const BOX_STANDARD = 165;   // above this → must confirm
+
+const PALLET_RE = /^\d{5}$/;  // pallet IDs are 5 digits (e.g. 49901)
+
+const CFG_KEY     = 'sh_pallet_cfg';
+const LANG_KEY    = 'sh_pallet_lang';
+const SESSION_KEY = 'sh_pallet_session';
+const LOG_KEY     = 'sh_pallet_log';     // device history, used for duplicate check
+const LOG_MAX     = 1000;                // keep last N rows only
+
+// ══════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════
+let cfg = safeJSON(localStorage.getItem(CFG_KEY)) || {
+  webhookUrl: 'https://script.google.com/macros/s/AKfycbwXuf40vHhwxo7ILqZ5vK1Gh_snnC8weZvTtOfTkybDWyntixaoNVtLsLtxdbXy6iPE/exec',
+};
+
+// ══════════════════════════════════════════════════════
+//  LANGUAGE (EN / VI)
+// ══════════════════════════════════════════════════════
+const T = {
+  en: {
+    enterPwd:'ENTER PASSWORD', unlock:'UNLOCK', mgrPwd:'Manager password required',
+    cancel:'CANCEL', enter:'ENTER', wrongPwd:'Incorrect password',
+    scanPalletQr:'SCAN PALLET QR', pointAtQr:'Point at the pallet QR code',
+    step1:'STEP 1 — STAFF NAME', staffPh:'Type your name',
+    step2:'STEP 2 — PALLET ID', tapScan:'TAP TO SCAN PALLET QR', rescan:'↺ tap to scan again',
+    orType:'— OR TYPE 5-DIGIT PALLET ID —',
+    step3:'STEP 3 — BOXES ON PALLET', boxUnit:'BOXES',
+    step4:'STEP 4 — TIME PALLET COMPLETED (HH:MM)', now:'NOW',
+    review:'REVIEW →', summary:'📦 PALLET SUMMARY',
+    kStaff:'Staff', kPallet:'Pallet ID', kDate:'Date', kCompleted:'Completed time',
+    boxesOnPallet:'BOXES ON PALLET', edit:'✎ EDIT', confirmSubmit:'CONFIRM SUBMIT',
+    saved:'SAVED', newPallet:'+ NEW PALLET',
+    // dynamic messages
+    hintRange:`Allowed ${BOX_MIN}–${BOX_MAX}`,
+    hintOverStd:n=>`⚠ ${n} is above standard ${BOX_STANDARD} — you will be asked to confirm`,
+    hintZero:'Must be at least 1 box',
+    hintOverMax:`Maximum ${BOX_MAX} boxes per pallet`,
+    errStaff:'Enter your name', errPallet:'Scan or type a 5-digit Pallet ID',
+    errPalletFmt:'Invalid Pallet ID — must be 5 digits', errBoxes:'Enter box count',
+    errBoxesRange:`Boxes must be ${BOX_MIN}–${BOX_MAX}`, errTime:'Enter completed time',
+    errTimeFuture:'Completed time cannot be later than now',
+    overTitle:`MORE THAN ${BOX_STANDARD} BOXES`,
+    overMsg:n=>`Standard pallet is ${BOX_STANDARD} boxes. You entered ${n}.<br>Have you counted and is ${n} correct?`,
+    overYes:n=>`YES — ${n} IS CORRECT`, overNo:'NO — RE-ENTER',
+    overSub:n=>`⚠ ${n - BOX_STANDARD} above standard ${BOX_STANDARD} — confirmed by staff`,
+    dupTitle:'PALLET ALREADY SUBMITTED',
+    dupMsg:when=>`This pallet was already submitted on ${when}.<br>It cannot be submitted twice. Check the pallet label.`,
+    dupOk:'OK — CHECK PALLET', dupMgr:'MANAGER OVERRIDE', dupPwdPh:'Manager password', dupGo:'SUBMIT ANYWAY',
+    scanned:id=>`✓ Pallet: ${id}`, camErr:'Camera not available',
+    restored:'✓ Session restored', sentOk:'✓ Pallet logged',
+    noHook:'Saved locally — no webhook set', sendFail:'Send failed — check connection and retry',
+    sucSub:(t,name)=>`BOXES · COMPLETED ${t} · ${name}`,
+  },
+  vi: {
+    enterPwd:'NHẬP MẬT KHẨU', unlock:'MỞ KHÓA', mgrPwd:'Cần mật khẩu quản lý',
+    cancel:'HỦY', enter:'VÀO', wrongPwd:'Sai mật khẩu',
+    scanPalletQr:'QUÉT QR PALLET', pointAtQr:'Hướng camera vào mã QR pallet',
+    step1:'BƯỚC 1 — TÊN NHÂN VIÊN', staffPh:'Nhập tên của bạn',
+    step2:'BƯỚC 2 — MÃ PALLET', tapScan:'CHẠM ĐỂ QUÉT QR PALLET', rescan:'↺ chạm để quét lại',
+    orType:'— HOẶC NHẬP MÃ PALLET 5 SỐ —',
+    step3:'BƯỚC 3 — SỐ THÙNG TRÊN PALLET', boxUnit:'THÙNG',
+    step4:'BƯỚC 4 — GIỜ HOÀN THÀNH PALLET (GG:PP)', now:'BÂY GIỜ',
+    review:'XEM LẠI →', summary:'📦 TÓM TẮT PALLET',
+    kStaff:'Nhân viên', kPallet:'Mã pallet', kDate:'Ngày', kCompleted:'Giờ hoàn thành',
+    boxesOnPallet:'SỐ THÙNG TRÊN PALLET', edit:'✎ SỬA', confirmSubmit:'XÁC NHẬN GỬI',
+    saved:'ĐÃ LƯU', newPallet:'+ PALLET MỚI',
+    hintRange:`Cho phép ${BOX_MIN}–${BOX_MAX}`,
+    hintOverStd:n=>`⚠ ${n} vượt mức chuẩn ${BOX_STANDARD} — sẽ cần xác nhận`,
+    hintZero:'Tối thiểu 1 thùng',
+    hintOverMax:`Tối đa ${BOX_MAX} thùng mỗi pallet`,
+    errStaff:'Nhập tên của bạn', errPallet:'Quét hoặc nhập mã pallet 5 số',
+    errPalletFmt:'Mã pallet không hợp lệ — phải có 5 số', errBoxes:'Nhập số thùng',
+    errBoxesRange:`Số thùng phải từ ${BOX_MIN}–${BOX_MAX}`, errTime:'Nhập giờ hoàn thành',
+    errTimeFuture:'Giờ hoàn thành không được sau thời điểm hiện tại',
+    overTitle:`HƠN ${BOX_STANDARD} THÙNG`,
+    overMsg:n=>`Pallet chuẩn là ${BOX_STANDARD} thùng. Bạn nhập ${n}.<br>Bạn đã đếm lại và ${n} là đúng?`,
+    overYes:n=>`ĐÚNG — ${n} THÙNG`, overNo:'KHÔNG — NHẬP LẠI',
+    overSub:n=>`⚠ Vượt chuẩn ${BOX_STANDARD} thêm ${n - BOX_STANDARD} — nhân viên đã xác nhận`,
+    dupTitle:'PALLET ĐÃ ĐƯỢC GỬI',
+    dupMsg:when=>`Pallet này đã được gửi lúc ${when}.<br>Không thể gửi hai lần. Kiểm tra lại nhãn pallet.`,
+    dupOk:'OK — KIỂM TRA PALLET', dupMgr:'QUẢN LÝ CHO PHÉP', dupPwdPh:'Mật khẩu quản lý', dupGo:'VẪN GỬI',
+    scanned:id=>`✓ Pallet: ${id}`, camErr:'Không mở được camera',
+    restored:'✓ Đã khôi phục phiên', sentOk:'✓ Đã ghi pallet',
+    noHook:'Đã lưu trên máy — chưa cài webhook', sendFail:'Gửi thất bại — kiểm tra mạng và thử lại',
+    sucSub:(t,name)=>`THÙNG · HOÀN THÀNH ${t} · ${name}`,
+  }
+};
+let lang = localStorage.getItem(LANG_KEY) || 'en';
+const t = k => (T[lang] && T[lang][k] !== undefined) ? T[lang][k] : T.en[k];
+
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPh); });
+  document.getElementById('lang-btn').textContent = lang==='vi' ? 'EN' : 'VI';
+  document.documentElement.lang = lang;
+  onBoxesInput(true);   // refresh boxes hint text in new language
+}
+function toggleLang(){ lang = lang==='en' ? 'vi' : 'en'; localStorage.setItem(LANG_KEY, lang); applyLang(); }
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let state = { staff:'', palletId:'', boxes:'', ctime:'' };
+let overConfirmedFor = null;   // box value the staff already confirmed as >165
+
+// ══════════════════════════════════════════════════════
+//  PASSWORDS
+// ══════════════════════════════════════════════════════
+function checkAppPwd(){
+  const inp=document.getElementById('lock-input');
+  if(inp.value===APP_PASSWORD){
+    document.getElementById('lock-screen').classList.add('hidden');
+    inp.value=''; document.getElementById('lock-error').textContent='';
+    setTimeout(()=>{ if(!state.staff) document.getElementById('staff-inp').focus(); },100);
+  } else {
+    const e=document.getElementById('lock-error');
+    e.textContent=t('wrongPwd'); inp.value=''; inp.focus();
+    setTimeout(()=>e.textContent='',2500);
+  }
+}
+function openSettings(){ document.getElementById('pwd-overlay').classList.add('open'); setTimeout(()=>document.getElementById('pwd-input')?.focus(),100); }
+function checkSettingsPwd(){
+  const inp=document.getElementById('pwd-input');
+  if(inp.value===SETTINGS_PASSWORD){
+    closePwdPrompt(); _openSettingsPanel();
+  } else {
+    const e=document.getElementById('pwd-error');
+    e.textContent=t('wrongPwd'); inp.value=''; inp.focus();
+    setTimeout(()=>e.textContent='',2500);
+  }
+}
+function closePwdPrompt(){ document.getElementById('pwd-overlay').classList.remove('open'); document.getElementById('pwd-input').value=''; document.getElementById('pwd-error').textContent=''; }
+
+// ══════════════════════════════════════════════════════
+//  SCANNER (ZXing — same engine as Sales)
+// ══════════════════════════════════════════════════════
+let zxingReader=null, zxingStream=null;
+
+async function startScanner(){
+  document.getElementById('qr-modal').classList.add('open');
+  const video=document.getElementById('qr-video');
+  try {
+    const hints=new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[
+      ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.EAN_13,
+    ]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    zxingReader=new ZXing.MultiFormatReader();
+    zxingReader.setHints(hints);
+    zxingStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
+    });
+    video.srcObject=zxingStream; await video.play();
+    requestAnimationFrame(zxingScan);
+  } catch(err){ showToast(t('camErr'),'bad'); cancelQR(); }
+}
+
+function zxingScan(){
+  const video=document.getElementById('qr-video');
+  if(!zxingStream) return;
+  if(video.readyState===video.HAVE_ENOUGH_DATA){
+    try {
+      const canvas=document.createElement('canvas');
+      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      canvas.getContext('2d').drawImage(video,0,0);
+      const lum=new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
+      const result=zxingReader.decode(bmp);
+      if(result&&result.getText()){
+        const val=result.getText().trim().toUpperCase();
+        stopCamera();
+        document.getElementById('qr-modal').classList.remove('open');
+        handleScan(val);
+        return;
+      }
+    } catch(e){ /* no code in this frame — keep scanning */ }
+  }
+  requestAnimationFrame(zxingScan);
+}
+function stopCamera(){
+  zxingStream&&zxingStream.getTracks().forEach(tr=>tr.stop());
+  zxingStream=null; zxingReader=null;
+  document.getElementById('qr-video').srcObject=null;
+}
+function cancelQR(){ stopCamera(); document.getElementById('qr-modal').classList.remove('open'); }
+
+function handleScan(val){
+  if(!PALLET_RE.test(val)){ showToast(t('errPalletFmt')+': '+val,'bad'); return; }
+  setPallet(val);
+  document.getElementById('pallet-inp').value=val;
+  showToast(t('scanned')(val),'ok');
+  // jump straight to box count
+  setTimeout(()=>document.getElementById('boxes-inp').focus(),150);
+}
+
+// ══════════════════════════════════════════════════════
+//  FIELD HANDLERS
+// ══════════════════════════════════════════════════════
+function onStaffInput(){
+  const el=document.getElementById('staff-inp');
+  state.staff=el.value;
+  el.classList.toggle('ok', el.value.trim().length>0);
+  saveSession();
+}
+
+function onPalletTyped(){
+  const el=document.getElementById('pallet-inp');
+  el.value=el.value.replace(/\D/g,'').slice(0,5);   // digits only
+  setPallet(el.value);
+}
+
+let _lastDupChecked='';
+function setPallet(id, noCheck){
+  state.palletId=id;
+  const ok=PALLET_RE.test(id);
+  const block=document.getElementById('pallet-block');
+  block.classList.toggle('scanned', ok);
+  document.getElementById('pallet-value').style.display  = ok ? 'block' : 'none';
+  document.getElementById('pallet-value').textContent    = ok ? id : '—';
+  document.getElementById('pallet-prompt').style.display = ok ? 'none'  : 'block';
+  document.getElementById('pallet-rescan').style.display = ok ? 'block' : 'none';
+  const inp=document.getElementById('pallet-inp');
+  inp.classList.toggle('ok', ok);
+  inp.classList.toggle('bad', id.length>0 && !ok && id.length===5);
+  saveSession();
+  // Duplicate check as soon as a valid 5-digit ID is entered/scanned
+  if(!ok){ _lastDupChecked=''; return; }
+  if(!noCheck && id!==_lastDupChecked){
+    _lastDupChecked=id;
+    checkDuplicate(id).then(allowed=>{
+      if(!allowed){
+        document.getElementById('pallet-inp').value='';
+        setPallet('', true); _lastDupChecked='';
+      }
+    });
+  }
+}
+
+// ── DUPLICATE PREVENTION ──
+// Looks up this pallet in device history. Blocks unless a manager overrides.
+function findPrev(id){
+  const log=safeJSON(localStorage.getItem(LOG_KEY)) || [];
+  return [...log].reverse().find(r=>r.pallet_id===id);
+}
+function askDuplicate(id, when){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('dup-overlay'), mgr=document.getElementById('dup-mgr');
+    const pwd=document.getElementById('dup-pwd');
+    document.getElementById('dup-big').textContent=id;
+    document.getElementById('dup-msg').innerHTML=t('dupMsg')(when);
+    mgr.classList.remove('open'); pwd.value='';
+    const close=v=>{ ov.classList.remove('open'); pwd.value=''; resolve(v); };
+    document.getElementById('dup-ok').onclick=()=>close(false);
+    document.getElementById('dup-link').onclick=()=>{ mgr.classList.add('open'); pwd.focus(); };
+    const go=()=>{ if(pwd.value===SETTINGS_PASSWORD) close(true); else { showToast(t('wrongPwd'),'bad'); pwd.value=''; pwd.focus(); } };
+    document.getElementById('dup-go').onclick=go;
+    pwd.onkeydown=e=>{ if(e.key==='Enter') go(); };
+    ov.classList.add('open');
+  });
+}
+// true = OK to proceed (not a duplicate, or manager overrode)
+async function checkDuplicate(id){
+  if(!PALLET_RE.test(id) || state.dupOk===id) return true;
+  const prev=findPrev(id);
+  if(!prev) return true;
+  const ok=await askDuplicate(id, `${prev.date} ${prev.time}`);
+  if(ok) state.dupOk=id;
+  return ok;
+}
+
+// silent=true → only refresh styling/hint, don't touch saved state
+function onBoxesInput(silent){
+  const el=document.getElementById('boxes-inp');
+  if(!silent){
+    el.value=el.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'').slice(0,3);  // digits, no leading zeros
+    state.boxes=el.value;
+    overConfirmedFor=null;   // any change invalidates a previous >165 confirmation
+    saveSession();
+  }
+  const hint=document.getElementById('boxes-hint');
+  el.classList.remove('warn','bad'); hint.className='boxes-hint';
+  if(el.value===''){ hint.textContent=t('hintRange'); return; }
+  const n=parseInt(el.value,10);
+  if(n<BOX_MIN)            { el.classList.add('bad');  hint.classList.add('bad');  hint.textContent=t('hintZero'); }
+  else if(n>BOX_MAX)       { el.classList.add('bad');  hint.classList.add('bad');  hint.textContent=t('hintOverMax'); }
+  else if(n>BOX_STANDARD)  { el.classList.add('warn'); hint.classList.add('warn'); hint.textContent=t('hintOverStd')(n); }
+  else                     { hint.textContent=t('hintRange'); }
+}
+
+function onTimeInput(){ state.ctime=document.getElementById('time-inp').value; saveSession(); }
+function setTimeNow(){ const now=new Date(); document.getElementById('time-inp').value=ft(now); onTimeInput(); }
+
+// ══════════════════════════════════════════════════════
+//  WARNING MODAL — returns Promise<boolean>
+// ══════════════════════════════════════════════════════
+function askWarn({title, big='', msg, yes, no}){
+  return new Promise(resolve=>{
+    document.getElementById('warn-title').textContent=title;
+    document.getElementById('warn-big').textContent=big;
+    document.getElementById('warn-big').style.display = big ? 'block' : 'none';
+    document.getElementById('warn-msg').innerHTML=msg;
+    const y=document.getElementById('warn-yes'), n=document.getElementById('warn-no');
+    y.textContent=yes; n.textContent=no;
+    const close=v=>{ document.getElementById('warn-overlay').classList.remove('open'); y.onclick=n.onclick=null; resolve(v); };
+    y.onclick=()=>close(true); n.onclick=()=>close(false);
+    document.getElementById('warn-overlay').classList.add('open');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  VALIDATION → CONFIRM SCREEN
+// ══════════════════════════════════════════════════════
+async function goConfirm(){
+  const staff=state.staff.trim().replace(/\s+/g,' ');
+  if(!staff)                          { fail(t('errStaff'),'staff-inp'); return; }
+  if(!state.palletId)                 { fail(t('errPallet'),'pallet-inp'); return; }
+  if(!PALLET_RE.test(state.palletId)) { fail(t('errPalletFmt'),'pallet-inp'); return; }
+  if(state.boxes==='')                { fail(t('errBoxes'),'boxes-inp'); return; }
+  const n=parseInt(state.boxes,10);
+  if(isNaN(n)||n<BOX_MIN||n>BOX_MAX)  { fail(t('errBoxesRange'),'boxes-inp'); return; }
+  if(!state.ctime)                    { fail(t('errTime'),'time-inp'); return; }
+
+  // Completed time cannot be in the future (date is always today)
+  const now=new Date();
+  if(state.ctime > ft(now))           { fail(t('errTimeFuture'),'time-inp'); return; }
+
+  // >165 boxes → explicit confirmation (once per value)
+  if(n>BOX_STANDARD && overConfirmedFor!==n){
+    const ok=await askWarn({ title:t('overTitle'), big:String(n), msg:t('overMsg')(n), yes:t('overYes')(n), no:t('overNo') });
+    if(!ok){ const b=document.getElementById('boxes-inp'); b.focus(); b.select(); return; }
+    overConfirmedFor=n;
+  }
+
+  document.getElementById('conf-staff').textContent  = staff;
+  document.getElementById('conf-pallet').textContent = state.palletId;
+  document.getElementById('conf-date').textContent   = fd(now);
+  document.getElementById('conf-ctime').textContent  = state.ctime;
+  const bEl=document.getElementById('conf-boxes');
+  bEl.textContent=n; bEl.classList.toggle('warn', n>BOX_STANDARD);
+  document.getElementById('conf-boxes-sub').textContent = n>BOX_STANDARD ? t('overSub')(n) : '';
+
+  show('confirm-screen'); window.scrollTo(0,0);
+}
+
+function fail(msg, focusId){
+  showToast(msg,'bad');
+  const el=document.getElementById(focusId);
+  if(el){ el.classList.add('bad'); el.focus(); setTimeout(()=>el.classList.remove('bad'),1500); }
+}
+
+// ══════════════════════════════════════════════════════
+//  SUBMIT
+// ══════════════════════════════════════════════════════
+async function submitLog(){
+  const btn=document.getElementById('btn-confirm');
+
+  // Duplicate check against this device's history
+  // Duplicate backstop (also checked at scan time) — blocked unless manager override
+  if(!(await checkDuplicate(state.palletId))){
+    document.getElementById('pallet-inp').value=''; setPallet('', true); _lastDupChecked='';
+    show('form-screen'); return;
+  }
+  const log=safeJSON(localStorage.getItem(LOG_KEY)) || [];
+
+  btn.textContent='…'; btn.disabled=true;
+  const now=new Date();
+  const staff=state.staff.trim().replace(/\s+/g,' ');
+  const boxes=parseInt(state.boxes,10);
+
+  // Column order in sheet: TIMESTAMP DATE TIME YYYYMMDD YYYYMM STAFF_NAME PALLET_ID BOXES COMPLETED_TIME APP_VERSION
+  const payload={
+    form_type:      FORM_TYPE,
+    timestamp:      now.toISOString(),
+    date:           fd(now),
+    time:           ft(now),
+    yyyymmdd:       toYMD(now),
+    yyyymm:         toYM(now),
+    staff_name:     staff,
+    pallet_id:      state.palletId,
+    boxes:          boxes,
+    completed_time: state.ctime,
+    app_version:    APP_VERSION
+  };
+
+  if(cfg.webhookUrl){
+    try{
+      // no-cors: same pattern as other SH OPS apps — only network failure is detectable
+      await fetch(cfg.webhookUrl,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    } catch {
+      showToast(t('sendFail'),'bad');
+      btn.textContent=t('confirmSubmit'); btn.disabled=false;
+      return;   // keep session so staff can retry
+    }
+    showToast(t('sentOk'),'ok');
+  } else {
+    showToast(t('noHook'),'warn');
+  }
+
+  // Record locally (for duplicate check), trimmed to LOG_MAX
+  log.push(payload);
+  localStorage.setItem(LOG_KEY, JSON.stringify(log.slice(-LOG_MAX)));
+
+  document.getElementById('suc-pallet').textContent = 'Pallet '+state.palletId;
+  document.getElementById('suc-count').textContent  = boxes;
+  document.getElementById('suc-sub').textContent    = t('sucSub')(state.ctime, staff);
+
+  clearSession();
+  show('success-screen'); window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════════════════
+//  RESET / NAVIGATION
+// ══════════════════════════════════════════════════════
+function resetAll(){
+  state={ staff:'', palletId:'', boxes:'', ctime:'' };   // staff name clears every submit (SH OPS standard)
+  overConfirmedFor=null;
+  clearSession();
+  document.getElementById('staff-inp').value='';
+  document.getElementById('staff-inp').classList.remove('ok');
+  document.getElementById('pallet-inp').value='';
+  setPallet('');
+  document.getElementById('boxes-inp').value='';
+  onBoxesInput(true);
+  setTimeNow();
+  const btn=document.getElementById('btn-confirm');
+  btn.textContent=t('confirmSubmit'); btn.disabled=false;
+  show('form-screen'); window.scrollTo(0,0);
+  setTimeout(()=>document.getElementById('staff-inp').focus(),100);
+}
+
+function show(id){
+  ['form-screen','confirm-screen','success-screen'].forEach(s=>{
+    document.getElementById(s).style.display = s===id ? 'block' : 'none';
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════
+function _openSettingsPanel(){ document.getElementById('cfg-url').value=cfg.webhookUrl; document.getElementById('cfg-overlay').classList.add('open'); }
+function closeSettings(){ document.getElementById('cfg-overlay').classList.remove('open'); }
+function cfgOutside(e){ if(e.target===document.getElementById('cfg-overlay')) closeSettings(); }
+function saveSettings(){ cfg.webhookUrl=document.getElementById('cfg-url').value.trim(); localStorage.setItem(CFG_KEY,JSON.stringify(cfg)); showToast('Settings saved','ok'); closeSettings(); }
+
+// ══════════════════════════════════════════════════════
+//  SESSION PERSISTENCE (restore on load, clear after submit)
+// ══════════════════════════════════════════════════════
+function saveSession(){
+  if(!state.staff && !state.palletId && !state.boxes) return;
+  localStorage.setItem(SESSION_KEY, JSON.stringify(state));
+}
+function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+function restoreSession(){
+  const s=safeJSON(localStorage.getItem(SESSION_KEY));
+  if(!s || (!s.staff && !s.palletId && !s.boxes)) return false;
+  state={ staff:s.staff||'', palletId:s.palletId||'', boxes:s.boxes||'', ctime:s.ctime||'' };
+  document.getElementById('staff-inp').value=state.staff; onStaffInput();
+  document.getElementById('pallet-inp').value=state.palletId; setPallet(state.palletId, true);
+  document.getElementById('boxes-inp').value=state.boxes; onBoxesInput(true);
+  if(state.ctime) document.getElementById('time-inp').value=state.ctime; else setTimeNow();
+  showToast(t('restored'),'info');
+  return true;
+}
+
+// ══════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════
+function fd(d){ return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`; }
+function ft(d){ return `${p(d.getHours())}:${p(d.getMinutes())}`; }
+function toYMD(d){ return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`; }
+function toYM(d) { return `${d.getFullYear()}${p(d.getMonth()+1)}`; }
+function p(n)   { return String(n).padStart(2,'0'); }
+function safeJSON(s){ try { return JSON.parse(s); } catch { return null; } }
+
+let _tt;
+function showToast(msg,type='ok'){ const el=document.getElementById('toast'); el.textContent=msg; el.className=`toast ${type} show`; clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000); }
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+document.getElementById('hdr-ver').textContent='v'+APP_VERSION;
+if(!restoreSession()){ setTimeNow(); }
+applyLang();
+show('form-screen');
+document.getElementById('lock-screen').classList.remove('hidden');
+setTimeout(()=>document.getElementById('lock-input')?.focus(),100);
+</script>
+</body>
+</html>
